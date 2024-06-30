@@ -11,6 +11,38 @@ Content-Type: application/json
 
 ###
 
+PUT {{api_HostAddress}}/account/close
+Content-Type: application/json
+
+{
+    "customerId": 1,
+    "accountId": 1
+}
+
+###
+
+POST {{api_HostAddress}}/account/deposit
+Content-Type: application/json
+
+{
+    "customerId": 1,
+    "accountId": 1,
+    "amount": 100.00
+}
+
+###
+
+POST {{api_HostAddress}}/account/withdrawal
+Content-Type: application/json
+
+{
+    "customerId": 1,
+    "accountId": 1,
+    "amount": 50.00
+}
+
+###
+
 GET {{api_HostAddress}}/account
 
 ###

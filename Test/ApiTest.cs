@@ -39,22 +39,79 @@ public class ApiTest : IClassFixture<CustomWebApplicationFactory<Program>>
         double initialDeposit = 100;
         int expectedAccountId = 1;
         bool expectedSucceeded = true;
+        var expected = new OpenAccountResponse(customerId, expectedAccountId, expectedSucceeded);
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/account/open")
         {
             Content = JsonContent.Create(new OpenAccount(customerId, accountType, initialDeposit))
         };
-        var expected = new OpenAccountResponse 
-        {
-            CustomerId = customerId,
-            AccountId = expectedAccountId,
-            Succeeded = expectedSucceeded
-        };
 
         var response = await _client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        Assert.Equal("/account", response.Headers.Location?.OriginalString);
+        Assert.Equal($"/account/{customerId}", response.Headers.Location?.OriginalString);
         Assert.Equivalent(expected, await response.Content.ReadFromJsonAsync<OpenAccountResponse>());
+    }
+
+    [Fact]
+    public async Task Put_CloseAccount_ReturnsOkWithContent()
+    {
+        int customerId = 1;
+        int accountId = 1;
+        bool expectedSucceeded = true;
+        var expected = new CloseAccountResponse(customerId, accountId, expectedSucceeded);
+
+        var request = new HttpRequestMessage(HttpMethod.Put, "/account/close")
+        {
+            Content = JsonContent.Create(new CloseAccount(customerId, accountId))
+        };
+
+        var response = await _client.SendAsync(request);
+        var closeAccountResponse = await response.Content.ReadFromJsonAsync<CloseAccountResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equivalent(expected, closeAccountResponse);
+    }
+
+    [Fact]
+    public async void Post_Deposit_ReturnsCreatedWithContent()
+    {
+        int customerId = 1;
+        int accountId = 1;
+        double amount = 100;
+        bool expectedSucceeded = true;
+        var expected = new DepositResponse(customerId, accountId, amount, expectedSucceeded);
+
+        var request = new HttpRequestMessage(HttpMethod.Post, "/account/deposit")
+        {
+            Content = JsonContent.Create(new Deposit(customerId, accountId, amount))
+        };
+
+        var response = await _client.SendAsync(request);
+        var depositResponse = await response.Content.ReadFromJsonAsync<DepositResponse>();
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        Assert.Equivalent(expected, depositResponse);
+    }
+
+    [Fact]
+    public async void Post_Withdrawal_ReturnsCreatedWithContent()
+    {
+        int customerId = 1;
+        int accountId = 1;
+        double amount = 50;
+        bool expectedSucceeded = true;
+        var expected = new WithdrawalResponse(customerId, accountId, amount, expectedSucceeded);
+
+        var request = new HttpRequestMessage(HttpMethod.Post, "/account/withdrawal")
+        {
+            Content = JsonContent.Create(new Withdrawal(customerId, accountId, amount))
+        };
+
+        var response = await _client.SendAsync(request);
+        var withdrawalResponse = await response.Content.ReadFromJsonAsync<WithdrawalResponse>();
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        Assert.Equivalent(expected, withdrawalResponse);
     }
 }

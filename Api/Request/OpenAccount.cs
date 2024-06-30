@@ -2,16 +2,9 @@ using Api.Data;
 
 namespace Api.Request;
 
-public class OpenAccount
+public class OpenAccount(int customerId, AccountType accountType, double initialDeposit)
 {
-    public int CustomerId { get; }
-    public AccountType AccountType { get; }
-    public double InitialDeposit { get; }
-
-    public OpenAccount(int customerId, AccountType accountType, double initialDeposit)
-    {
-        CustomerId = customerId;
-        AccountType = accountType;
-        InitialDeposit = initialDeposit;
-    }
+    public int CustomerId { get; } = customerId;
+    public AccountType AccountType { get; } = accountType;
+    public double InitialDeposit { get; } = initialDeposit;
 }
