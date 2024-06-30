@@ -1,6 +1,18 @@
 @api_HostAddress = http://localhost:5183
 
-GET {{api_HostAddress}}/weatherforecast/
-Accept: application/json
+POST {{api_HostAddress}}/account/open
+Content-Type: application/json
+
+{
+    "customerId": 1,
+    "accountType": 1,
+    "initialDeposit": 100.00
+}
 
 ###
+
+GET {{api_HostAddress}}/account
+
+###
+
+GET {{api_HostAddress}}/customer
