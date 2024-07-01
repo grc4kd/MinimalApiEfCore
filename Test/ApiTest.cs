@@ -3,6 +3,7 @@ using Api.Data;
 using Api.Request;
 using Api.Responses;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Test.Helpers;
 
 namespace Test;
 
@@ -32,28 +33,6 @@ public class ApiTest : IClassFixture<CustomWebApplicationFactory<Program>>
     }
 
     [Fact]
-    public async Task Post_OpenAccount_ReturnsCreated()
-    {
-        int customerId = 1;
-        AccountType accountType = AccountType.Checking;
-        double initialDeposit = 100;
-        int expectedAccountId = 1;
-        bool expectedSucceeded = true;
-        var expected = new OpenAccountResponse(customerId, expectedAccountId, expectedSucceeded);
-
-        var request = new HttpRequestMessage(HttpMethod.Post, "/account/open")
-        {
-            Content = JsonContent.Create(new OpenAccount(customerId, accountType, initialDeposit))
-        };
-
-        var response = await _client.SendAsync(request);
-
-        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        Assert.Equal($"/account/{customerId}", response.Headers.Location?.OriginalString);
-        Assert.Equivalent(expected, await response.Content.ReadFromJsonAsync<OpenAccountResponse>());
-    }
-
-    [Fact]
     public async Task Put_CloseAccount_ReturnsOkWithContent()
     {
         int customerId = 1;
@@ -63,7 +42,7 @@ public class ApiTest : IClassFixture<CustomWebApplicationFactory<Program>>
 
         var request = new HttpRequestMessage(HttpMethod.Put, "/account/close")
         {
-            Content = JsonContent.Create(new CloseAccount(customerId, accountId))
+            Content = JsonContent.Create(new CloseAccountRequest(customerId, accountId))
         };
 
         var response = await _client.SendAsync(request);
@@ -84,7 +63,7 @@ public class ApiTest : IClassFixture<CustomWebApplicationFactory<Program>>
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/account/deposit")
         {
-            Content = JsonContent.Create(new Deposit(customerId, accountId, amount))
+            Content = JsonContent.Create(new DepositRequest(customerId, accountId, amount))
         };
 
         var response = await _client.SendAsync(request);
@@ -105,7 +84,7 @@ public class ApiTest : IClassFixture<CustomWebApplicationFactory<Program>>
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/account/withdrawal")
         {
-            Content = JsonContent.Create(new Withdrawal(customerId, accountId, amount))
+            Content = JsonContent.Create(new WithdrawalRequest(customerId, accountId, amount))
         };
 
         var response = await _client.SendAsync(request);

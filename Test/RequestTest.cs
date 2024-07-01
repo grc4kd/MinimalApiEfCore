@@ -16,7 +16,7 @@ public class RequestTest
         int customerId = 5;
         double initialDeposit = 100;
 
-        var request = new OpenAccount(customerId, accountType, initialDeposit);
+        var request = new OpenAccountRequest(customerId, accountType, initialDeposit);
 
         Assert.Equal(customerId, request.CustomerId);
         Assert.Equal(accountType, request.AccountType);
@@ -29,7 +29,7 @@ public class RequestTest
         int customerId = 5;
         int accountId = 17;
 
-        var request = new CloseAccount(customerId, accountId);
+        var request = new CloseAccountRequest(customerId, accountId);
 
         Assert.Equal(customerId, request.CustomerId);
         Assert.Equal(accountId, request.AccountId);
@@ -42,7 +42,7 @@ public class RequestTest
         int accountId = 17;
         double amount = 20;
 
-        var request = new Deposit(customerId, accountId, amount);
+        var request = new DepositRequest(customerId, accountId, amount);
 
         Assert.Equal(customerId, request.CustomerId);
         Assert.Equal(accountId, request.AccountId);
@@ -56,7 +56,7 @@ public class RequestTest
         int accountId = 17;
         double amount = 10;
 
-        var request = new Withdrawal(customerId, accountId, amount);
+        var request = new WithdrawalRequest(customerId, accountId, amount);
 
         Assert.Equal(customerId, request.CustomerId);
         Assert.Equal(accountId, request.AccountId);

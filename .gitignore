@@ -1,3 +1,4 @@
 # exclude C# compilation files
 bin/
 obj/
+Api/*.db

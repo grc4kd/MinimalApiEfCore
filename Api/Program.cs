@@ -1,10 +1,16 @@
-using System.Net.Http.Headers;
 using Api.Data;
 using Api.Request;
 using Api.Responses;
-using Microsoft.Net.Http.Headers;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDbContext<AccountDbContext>(options =>
+{
+    options.UseSqlite("DataSource=Accounts.db");
+});
+
+builder.Services.AddControllers();
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -21,6 +27,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.MapControllers();
 
 var names = new[]
 {
@@ -50,14 +58,16 @@ app.MapGet("/customer", () =>
 .WithName("GetCustomer")
 .WithOpenApi();
 
-app.MapGet("/account", () =>
+var account = app.MapGroup("/account");
+
+account.MapGet("/", () =>
 {
     return accounts;
 })
 .WithName("GetAccounts")
 .WithOpenApi();
 
-app.MapGet("/account/{id}", (int id) =>
+account.MapGet("/{id}", (int id) =>
 {
     var account = new Account {
         Id = id,
@@ -71,23 +81,7 @@ app.MapGet("/account/{id}", (int id) =>
 .WithName("GetAccount")
 .WithOpenApi();
 
-app.MapPost("/account/open", (OpenAccount openAccount) => {
-    var account = new Account {
-        Id = 1,
-        CustomerId = openAccount.CustomerId,
-        Customer = new Customer {
-            Id = openAccount.CustomerId,
-            Name = names[Random.Shared.Next(names.Length)]
-        }
-    };
-
-    return TypedResults.Created($"/account/{account.Id}", 
-        new OpenAccountResponse(account.CustomerId, account.Id, true));
-})
-.WithName("OpenAccount")
-.WithOpenApi();
-
-app.MapPost("/account/deposit", (Deposit deposit) => {
+account.MapPost("/deposit", (DepositRequest deposit) => {
     var balance = deposit.Amount;
 
     return TypedResults.Created($"/account/{deposit.AccountId}", 
@@ -96,7 +90,7 @@ app.MapPost("/account/deposit", (Deposit deposit) => {
 .WithName("Deposit")
 .WithOpenApi();
 
-app.MapPost("/account/withdrawal", (Withdrawal withdrawal) => {
+account.MapPost("/withdrawal", (WithdrawalRequest withdrawal) => {
     var balance = withdrawal.Amount;
 
     return TypedResults.Created($"/account/{withdrawal.AccountId}", 
@@ -105,7 +99,7 @@ app.MapPost("/account/withdrawal", (Withdrawal withdrawal) => {
 .WithName("Withdrawal")
 .WithOpenApi();
 
-app.MapPut("/account/close", (CloseAccount closeAccount) => {
+account.MapPut("/close", (CloseAccountRequest closeAccount) => {
     var account = new Account {
         Id = closeAccount.AccountId,
         CustomerId = closeAccount.CustomerId,

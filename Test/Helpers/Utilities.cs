@@ -4,38 +4,47 @@ namespace Test.Helpers;
 
 public static class Utilities
 {
+    internal static int MaxDbCustomerId => GetSeedingAccounts().Max(a => a.Customer.Id);
+
     public static void InitializeDbForTests(AccountDbContext db) 
     {
-        db.Customers.AddRange(GetSeedingCustomers());
-        db.Accounts.AddRange(GetSeedingAccounts(db.Customers));
+        db.Database.EnsureCreated();
+        db.Accounts.AddRange(GetSeedingAccounts());
+        db.SaveChanges();
     }
 
     public static void ReinitializeDbForTests(AccountDbContext db)
     {
-        db.Accounts.RemoveRange(db.Accounts);
         db.Customers.RemoveRange(db.Customers);
+        db.SaveChanges();
         InitializeDbForTests(db);
     }
 
-    public static List<Customer> GetSeedingCustomers()
+    public static List<Account> GetSeedingAccounts()
     {
-        return
+        return 
         [
-            new Customer() { Name = "Arnold" },
-            new Customer() { Name = "Benjamin" },
-            new Customer() { Name = "Charles" }
+            new Account() {
+                Id = 1,
+                Customer = new Customer {
+                    Id = 1,
+                    Name = "Ada"
+                }
+            },
+            new Account() {
+                Id = 2,
+                Customer = new Customer {
+                    Id = 2,
+                    Name = "Barbara"
+                }
+            },
+            new Account() {
+                Id = 3,
+                Customer = new Customer {
+                    Id = 3,
+                    Name = "Grace"
+                }
+            }
         ];
-    }
-
-    public static List<Account> GetSeedingAccounts(IEnumerable<Customer> customers)
-    {
-        var accounts = new List<Account>();
-        foreach (var customer in customers)
-        {
-            accounts.Add(new Account() {
-                Customer = customer
-            });
-        }
-        return accounts;
     }
 }
