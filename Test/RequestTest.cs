@@ -14,7 +14,7 @@ public class RequestTest
     public void OpenAccount_TestRequestDefinition(AccountType accountType)
     {
         int customerId = 5;
-        double initialDeposit = 100;
+        decimal initialDeposit = 100;
 
         var request = new OpenAccountRequest(customerId, accountType, initialDeposit);
 
@@ -40,7 +40,7 @@ public class RequestTest
     {
         int customerId = 5;
         int accountId = 17;
-        double amount = 20;
+        decimal amount = 20;
 
         var request = new DepositRequest(customerId, accountId, amount);
 
@@ -54,7 +54,7 @@ public class RequestTest
     {
         int customerId = 5;
         int accountId = 17;
-        double amount = 10;
+        decimal amount = 10;
 
         var request = new WithdrawalRequest(customerId, accountId, amount);
 

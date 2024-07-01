@@ -1,7 +1,9 @@
 using System.Net;
+using System.Net.Http.Headers;
 using Api.Data;
 using Api.Request;
 using Api.Responses;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Test.Helpers;
 
@@ -11,6 +13,8 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
 {
     private readonly HttpClient _client;
     private readonly CustomWebApplicationFactory<Program> _factory;
+    private readonly MediaTypeHeaderValue problemJsonMediaTypeHeaderValue = new("application/problem+json", "utf-8");
+    private readonly MediaTypeHeaderValue jsonMediaTypeHeaderValue = new("application/json", "utf-8");
 
     public AccountControllerTest(CustomWebApplicationFactory<Program> factory)
     {
@@ -46,6 +50,7 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
         response.EnsureSuccessStatusCode();
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        Assert.Equal(jsonMediaTypeHeaderValue, response.Content.Headers.ContentType);
         Assert.Equal("/api/Account/open", response.Headers.Location?.PathAndQuery);
         Assert.Equivalent(expectedResponse, await response.Content.ReadFromJsonAsync<OpenAccountResponse>());
     }
@@ -61,6 +66,7 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
         var response = await _client.PostAsync("api/account/open", JsonContent.Create(request));
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal(jsonMediaTypeHeaderValue, response.Content.Headers.ContentType);
         Assert.Equivalent(request, await response.Content.ReadFromJsonAsync<OpenAccountRequest>());
     }
 
@@ -78,6 +84,7 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
         response.EnsureSuccessStatusCode();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(jsonMediaTypeHeaderValue, response.Content.Headers.ContentType);
         Assert.Equivalent(expectedResponse, await response.Content.ReadFromJsonAsync<CloseAccountResponse>());
     }
 
@@ -92,6 +99,7 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
         var response = await _client.PutAsync("api/account/close", JsonContent.Create(request));
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal(jsonMediaTypeHeaderValue, response.Content.Headers.ContentType);
         Assert.Equivalent(request, await response.Content.ReadFromJsonAsync<CloseAccountRequest>());
     }
 
@@ -106,6 +114,7 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
         var response = await _client.PutAsync("api/account/close", JsonContent.Create(request));
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal(jsonMediaTypeHeaderValue, response.Content.Headers.ContentType);
         Assert.Equivalent(request, await response.Content.ReadFromJsonAsync<CloseAccountRequest>());
     }
 
@@ -118,6 +127,7 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
         var response = await _client.PutAsync("api/account/close", JsonContent.Create(request));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(jsonMediaTypeHeaderValue, response.Content.Headers.ContentType);
         Assert.Equivalent(request, await response.Content.ReadFromJsonAsync<CloseAccountRequest>());
     }
 
@@ -136,6 +146,7 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
         response.EnsureSuccessStatusCode();
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        Assert.Equal(jsonMediaTypeHeaderValue, response.Content.Headers.ContentType);
         Assert.Equal("/api/Account/deposit", response.Headers.Location?.PathAndQuery);
         Assert.Equivalent(expectedResponse, await response.Content.ReadFromJsonAsync<DepositResponse>());
     }
@@ -150,6 +161,7 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
         var response = await _client.PostAsync("api/account/deposit", JsonContent.Create(request));
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal(jsonMediaTypeHeaderValue, response.Content.Headers.ContentType);
         Assert.Equivalent(request, await response.Content.ReadFromJsonAsync<DepositRequest>());
     }
 
@@ -163,6 +175,7 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
         var response = await _client.PostAsync("api/account/deposit", JsonContent.Create(request));
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal(jsonMediaTypeHeaderValue, response.Content.Headers.ContentType);
         Assert.Equivalent(request, await response.Content.ReadFromJsonAsync<DepositRequest>());
     }
 
@@ -176,19 +189,7 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
         var response = await _client.PostAsync("api/account/deposit", JsonContent.Create(request));
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-        Assert.Equivalent(request, await response.Content.ReadFromJsonAsync<DepositRequest>());
-    }
-
-    [Fact]
-    public async Task Post_DepositWithNegativeAmount_BadRequest()
-    {
-        await ResetDatabaseAsync();
-
-        var request = new DepositRequest(customerId: 1, accountId: 1, -100);
-
-        var response = await _client.PostAsync("api/account/deposit", JsonContent.Create(request));
-
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(jsonMediaTypeHeaderValue, response.Content.Headers.ContentType);
         Assert.Equivalent(request, await response.Content.ReadFromJsonAsync<DepositRequest>());
     }
 
@@ -207,6 +208,7 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
         response.EnsureSuccessStatusCode();
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        Assert.Equal(jsonMediaTypeHeaderValue, response.Content.Headers.ContentType);
         Assert.Equal("/api/Account/withdrawal", response.Headers.Location?.PathAndQuery);
         Assert.Equivalent(expectedResponse, await response.Content.ReadFromJsonAsync<WithdrawalResponse>());
     }
@@ -221,6 +223,7 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
         var response = await _client.PostAsync("api/account/withdrawal", JsonContent.Create(request));
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal(jsonMediaTypeHeaderValue, response.Content.Headers.ContentType);
         Assert.Equivalent(request, await response.Content.ReadFromJsonAsync<WithdrawalRequest>());
     }
 
@@ -234,6 +237,7 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
         var response = await _client.PostAsync("api/account/withdrawal", JsonContent.Create(request));
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal(jsonMediaTypeHeaderValue, response.Content.Headers.ContentType);
         Assert.Equivalent(request, await response.Content.ReadFromJsonAsync<WithdrawalRequest>());
     }
 
@@ -247,19 +251,61 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
         var response = await _client.PostAsync("api/account/withdrawal", JsonContent.Create(request));
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal(jsonMediaTypeHeaderValue, response.Content.Headers.ContentType);
         Assert.Equivalent(request, await response.Content.ReadFromJsonAsync<WithdrawalRequest>());
     }
 
     [Fact]
-    public async Task Post_WithdrawalWithNegativeValue_BadRequest()
+    public async Task Post_DepositWithNegativeAmount_BadRequest()
+    {
+        await ResetDatabaseAsync();        
+
+        var request = new DepositRequest(customerId: 1, accountId: 1, -100);
+        var response = await _client.PostAsync("api/account/deposit", JsonContent.Create(request));
+        var httpValidationProblemDetails = await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(problemJsonMediaTypeHeaderValue, response.Content.Headers.ContentType);
+        Assert.NotNull(httpValidationProblemDetails);
+        Assert.Contains("Amount", httpValidationProblemDetails.Errors);
+    }
+
+    [Fact]
+    public async Task Post_WithdrawalWithNegativeAmount_BadRequest()
+    {
+        await ResetDatabaseAsync();
+        
+        var request = new WithdrawalRequest(customerId: 1, accountId: 1, -100);
+        var response = await _client.PostAsync("api/account/withdrawal", JsonContent.Create(request));
+        var httpValidationProblemDetails = await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(problemJsonMediaTypeHeaderValue, response.Content.Headers.ContentType);
+        Assert.NotNull(httpValidationProblemDetails);
+        Assert.Contains("Amount", httpValidationProblemDetails.Errors);
+    }
+
+    [Fact]
+    public async Task Post_DepositWithAmountOverMaximum_BadRequest()
     {
         await ResetDatabaseAsync();
 
-        var request = new WithdrawalRequest(customerId: 1, accountId: 1, -100);
+        var request = new DepositRequest(customerId: 1, accountId: 1, decimal.MaxValue);
+        var response = await _client.PostAsync("api/account/deposit", JsonContent.Create(request));
 
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(jsonMediaTypeHeaderValue, response.Content.Headers.ContentType);
+    }
+
+    [Fact]
+    public async void Post_WithdrawalWithAmountOverMaximum_BadRequest()
+    {
+        await ResetDatabaseAsync();
+
+        var request = new WithdrawalRequest(customerId: 1, accountId: 1, decimal.MaxValue);
         var response = await _client.PostAsync("api/account/withdrawal", JsonContent.Create(request));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.Equivalent(request, await response.Content.ReadFromJsonAsync<WithdrawalRequest>());
+        Assert.Equal(jsonMediaTypeHeaderValue, response.Content.Headers.ContentType);
     }
 }

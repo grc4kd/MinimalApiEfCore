@@ -1,3 +1,4 @@
+using Api;
 using Api.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,6 +15,17 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// get system settings from configuration during application startup
+IConfigurationRoot config = new ConfigurationBuilder()
+    .AddJsonFile("appsettings.json")
+    .AddEnvironmentVariables()
+    .Build();
+
+Settings? settings = config.GetSection("Settings").Get<Settings>();
+// default settings when required section settings is not found
+settings ??= new Settings { MaxWithdrawalAmount = decimal.MaxValue, MaxDepositAmount = decimal.MaxValue };
+builder.Services.AddSingleton(settings);
 
 var app = builder.Build();
 

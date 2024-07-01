@@ -10,9 +10,12 @@ namespace Api;
 public class AccountController : ControllerBase
 {
     private readonly AccountDbContext _context;
-    public AccountController(AccountDbContext context)
+    private readonly Settings _settings;
+
+    public AccountController(AccountDbContext context, Settings settings)
     {
         _context = context;
+        _settings = settings;
     }
 
     [HttpPost("open")]
@@ -52,9 +55,16 @@ public class AccountController : ControllerBase
             return NotFound(request);
         }
 
+        if (request.Amount > _settings.MaxDepositAmount)
+        {
+            ModelState.AddModelError(nameof(request.Amount),
+                $"Deposit amount must be less than or equal to maximum deposit amount: {_settings.MaxDepositAmount}");
+            return BadRequest(ModelState);
+        }
+
         try
         {
-            account.MakeDeposit((decimal)request.Amount);
+            account.MakeDeposit(request.Amount);
         }
         catch (ArgumentOutOfRangeException)
         {
@@ -79,6 +89,12 @@ public class AccountController : ControllerBase
         
         if (account == null) {
             return NotFound(request);
+        }
+
+        if (request.Amount > _settings.MaxWithdrawalAmount) {
+            ModelState.AddModelError(nameof(request.Amount),
+                $"Withdrawal amount must be less than or equal to maximum deposit amount: {_settings.MaxWithdrawalAmount}");
+            return BadRequest(ModelState);
         }
 
         try {
