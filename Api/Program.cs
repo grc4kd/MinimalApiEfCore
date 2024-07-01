@@ -1,5 +1,6 @@
 using Api;
 using Api.Data;
+using Api.Filters;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,7 +26,9 @@ IConfigurationRoot config = new ConfigurationBuilder()
 Settings? settings = config.GetSection("Settings").Get<Settings>();
 // default settings when required section settings is not found
 settings ??= new Settings { MaxWithdrawalAmount = decimal.MaxValue, MaxDepositAmount = decimal.MaxValue };
-builder.Services.AddSingleton(settings);
+
+CurrencyActionFilter.MaxDepositAmount = settings.MaxDepositAmount;
+CurrencyActionFilter.MaxWithdrawalAmount = settings.MaxWithdrawalAmount;
 
 var app = builder.Build();
 

@@ -1,4 +1,5 @@
 using Api.Data;
+using Api.Filters;
 using Api.Request;
 using Api.Responses;
 using Microsoft.AspNetCore.Mvc;
@@ -7,16 +8,10 @@ namespace Api;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AccountController : ControllerBase
+[CurrencyActionFilter]
+public class AccountController(AccountDbContext context) : ControllerBase
 {
-    private readonly AccountDbContext _context;
-    private readonly Settings _settings;
-
-    public AccountController(AccountDbContext context, Settings settings)
-    {
-        _context = context;
-        _settings = settings;
-    }
+    private readonly AccountDbContext _context = context;
 
     [HttpPost("open")]
     [ProducesResponseType(StatusCodes.Status201Created)]
@@ -55,13 +50,6 @@ public class AccountController : ControllerBase
             return NotFound(request);
         }
 
-        if (request.Amount > _settings.MaxDepositAmount)
-        {
-            ModelState.AddModelError(nameof(request.Amount),
-                $"Deposit amount must be less than or equal to maximum deposit amount: {_settings.MaxDepositAmount}");
-            return BadRequest(ModelState);
-        }
-
         try
         {
             account.MakeDeposit(request.Amount);
@@ -89,12 +77,6 @@ public class AccountController : ControllerBase
         
         if (account == null) {
             return NotFound(request);
-        }
-
-        if (request.Amount > _settings.MaxWithdrawalAmount) {
-            ModelState.AddModelError(nameof(request.Amount),
-                $"Withdrawal amount must be less than or equal to maximum deposit amount: {_settings.MaxWithdrawalAmount}");
-            return BadRequest(ModelState);
         }
 
         try {

@@ -1,5 +1,3 @@
-using Api;
-using Api.Request;
 using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace Test;
