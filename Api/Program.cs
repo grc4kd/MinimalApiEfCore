@@ -1,6 +1,4 @@
 using Api.Data;
-using Api.Request;
-using Api.Responses;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -79,39 +77,6 @@ account.MapGet("/{id}", (int id) =>
     return TypedResults.Created($"/account/{account.Id}", account);
 })
 .WithName("GetAccount")
-.WithOpenApi();
-
-account.MapPost("/deposit", (DepositRequest deposit) => {
-    var balance = deposit.Amount;
-
-    return TypedResults.Created($"/account/{deposit.AccountId}", 
-        new DepositResponse(deposit.CustomerId, deposit.AccountId, balance, true));
-})
-.WithName("Deposit")
-.WithOpenApi();
-
-account.MapPost("/withdrawal", (WithdrawalRequest withdrawal) => {
-    var balance = withdrawal.Amount;
-
-    return TypedResults.Created($"/account/{withdrawal.AccountId}", 
-        new WithdrawalResponse(withdrawal.CustomerId, withdrawal.AccountId, balance, true));
-})
-.WithName("Withdrawal")
-.WithOpenApi();
-
-account.MapPut("/close", (CloseAccountRequest closeAccount) => {
-    var account = new Account {
-        Id = closeAccount.AccountId,
-        CustomerId = closeAccount.CustomerId,
-        Customer = new Customer {
-            Id = closeAccount.CustomerId,
-            Name = names[Random.Shared.Next(names.Length)]
-        }
-    };
-
-    return new CloseAccountResponse(account.CustomerId, account.Id, true);
-})
-.WithName("CloseAccount")
 .WithOpenApi();
 
 app.Run();

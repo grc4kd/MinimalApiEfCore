@@ -5,19 +5,21 @@ namespace Test.Helpers;
 public static class Utilities
 {
     internal static int MaxDbCustomerId => GetSeedingAccounts().Max(a => a.Customer.Id);
+    internal static int MaxDbAccountId => GetSeedingAccounts().Max(a => a.Id);
 
-    public static void InitializeDbForTests(AccountDbContext db) 
+    public static async Task InitializeDbForTests(AccountDbContext db) 
     {
-        db.Database.EnsureCreated();
-        db.Accounts.AddRange(GetSeedingAccounts());
-        db.SaveChanges();
+        await db.Database.EnsureCreatedAsync();
+        await db.Accounts.AddRangeAsync(GetSeedingAccounts());
+        await db.SaveChangesAsync();
     }
 
-    public static void ReinitializeDbForTests(AccountDbContext db)
+    public static async Task ReinitializeDbForTests(AccountDbContext db)
     {
+        await db.Database.EnsureCreatedAsync();
         db.Customers.RemoveRange(db.Customers);
-        db.SaveChanges();
-        InitializeDbForTests(db);
+        await db.SaveChangesAsync();
+        await InitializeDbForTests(db);
     }
 
     public static List<Account> GetSeedingAccounts()
@@ -36,7 +38,8 @@ public static class Utilities
                 Customer = new Customer {
                     Id = 2,
                     Name = "Barbara"
-                }
+                },
+                Balance = 200
             },
             new Account() {
                 Id = 3,

@@ -1,3 +1,4 @@
+using Api.Data;
 using Api.Request;
 using Api.Responses;
 
@@ -31,6 +32,7 @@ public class ResponseTest
         Assert.Equal(customerId, response.CustomerId);
         Assert.Equal(accountId, response.AccountId);
         Assert.Equal(succeeded, response.Succeeded);
+        Assert.Equal(AccountStatus.CLOSED, response.AccountStatus);
     }
 
     [Fact]
@@ -38,7 +40,7 @@ public class ResponseTest
     {
         int customerId = 5;
         int accountId = 17;
-        double balance = 120;
+        decimal balance = 120;
         bool succeeded = true;
         
         var response = new DepositResponse(customerId, accountId, balance, succeeded);
@@ -54,7 +56,7 @@ public class ResponseTest
     {
         int customerId = 5;
         int accountId = 17;
-        double balance = 80;
+        decimal balance = 80;
         bool succeeded = true;
 
         var response = new WithdrawalResponse(customerId, accountId, balance, succeeded);

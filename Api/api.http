@@ -1,4 +1,4 @@
-@api_HostAddress = http://localhost:5183
+@api_HostAddress = http://localhost:5183/api
 
 POST {{api_HostAddress}}/account/open
 Content-Type: application/json
