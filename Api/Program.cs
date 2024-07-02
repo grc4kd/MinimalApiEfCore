@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Api;
 using Api.Data;
 using Api.Filters;
@@ -10,7 +11,18 @@ builder.Services.AddDbContext<AccountDbContext>(options =>
     options.UseSqlite("DataSource=Accounts.db");
 });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // do not serialize cyclical references found in the object graph of entities
+        // to prevent cycles after fix-up of entity navigation properties
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+    });
+
+builder.Services.ConfigureHttpJsonOptions(options => {
+    // prevent serialization cycles for minimal API endpoints
+    options.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+});
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -48,48 +60,61 @@ var names = new[]
     "Jack", "Jill", "Fred", "Tom", "Harry", "George", "Suzan", "Margerie", "Jolene", "Kate"
 };
 
-var customers = Enumerable.Range(1, 5).Select(index =>
-    new Customer {
-        Id = index,
-        Name = names[Random.Shared.Next(names.Length)]
-    }).ToArray();
+await using var scope = app.Services.CreateAsyncScope();
+var db = scope.ServiceProvider.GetRequiredService<AccountDbContext>();
+await db.Database.MigrateAsync();
 
-var accounts = Array.CreateInstance(typeof(Account), customers.Count());
-for (int i = 0; i < accounts.Length; i++)
+// seed the database if customers table is empty
+if (!await db.Customers.AnyAsync())
 {
-    accounts.SetValue(new Account {
-        Id = i,
-        Customer = customers[i],
-        CustomerId = customers[i].Id
-    }, i);
+    var customers = Enumerable.Range(1, 5).Select(index =>
+        new Customer {
+            Id = index,
+            Name = names[Random.Shared.Next(names.Length)]
+        });
+
+    await db.AddRangeAsync(customers);
+    await db.SaveChangesAsync();
 }
 
-app.MapGet("/customer", () =>
+var customer = app.MapGroup("/customer");
+
+customer.MapGet("/", async (AccountDbContext db) =>
 {
-    return customers;
+    var customers = await db.Customers
+        .AsNoTracking()
+        .Include(c => c.Accounts)
+        .ToListAsync();
+    return TypedResults.Ok(customers);
 })
 .WithName("GetCustomer")
 .WithOpenApi();
 
 var account = app.MapGroup("/account");
 
-account.MapGet("/", () =>
+account.MapGet("/", async (AccountDbContext db) =>
 {
-    return accounts;
+    var accounts = await db.Accounts
+        .AsNoTracking()
+        .Include(a => a.Customer)
+        .ToListAsync();
+    return TypedResults.Ok(accounts);
 })
 .WithName("GetAccounts")
 .WithOpenApi();
 
-account.MapGet("/{id}", (int id) =>
+account.MapGet("/{id}", async (AccountDbContext db, int id) =>
 {
-    var account = new Account {
-        Id = id,
-        CustomerId = Random.Shared.Next(1, 5),
-        Customer = new Customer {
-            Name = names[Random.Shared.Next(names.Length)]
-        },
-    };
-    return TypedResults.Created($"/account/{account.Id}", account);
+    var account = await db.Accounts
+        .Include(a => a.Customer)
+        .SingleOrDefaultAsync(a => a.Id == id);
+    
+    if (account != null)
+    {
+        return TypedResults.Created($"/account/{account.Id}", account);
+    }
+
+    return Results.NotFound();
 })
 .WithName("GetAccount")
 .WithOpenApi();
