@@ -1,18 +1,20 @@
 using System.Net;
-using System.Net.Http.Headers;
 using Api.Data;
+using Api.Data.Seeding;
 using Api.Request;
 using Api.Responses;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Test.Helpers;
+using Microsoft.EntityFrameworkCore;
 
 namespace Test;
 
-public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<Program>>
+public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<Program>>, IAsyncDisposable
 {
     private readonly HttpClient _client;
     private readonly CustomWebApplicationFactory<Program> _factory;
-    private readonly MediaTypeHeaderValue problemJsonMediaTypeHeaderValue = new("application/problem+json", "utf-8");
+
+    private static int MaxSeededAccountId;
+    private static int MaxSeededCustomerId;
 
     public AccountControllerTest(CustomWebApplicationFactory<Program> factory)
     {
@@ -21,27 +23,31 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
         {
             AllowAutoRedirect = false
         });
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AccountDbContext>();
+        db.Database.Migrate();
+        AccountDbSeeder seeder = new(db);
+        seeder.SeedDatabase();
+
+        MaxSeededAccountId = seeder.MaxSeededAccountId;
+        MaxSeededCustomerId = seeder.MaxSeededCustomerId;
     }
 
-    private async Task ResetDatabaseAsync()
+    public ValueTask DisposeAsync()
     {
-        using var scope = _factory.Services.CreateScope();
-        var scopedServices = scope.ServiceProvider;
-        var db = scopedServices.GetRequiredService<AccountDbContext>();
-
-        await Utilities.ReinitializeDbForTests(db);
+        GC.SuppressFinalize(this);
+        return _factory.DisposeAsync();
     }
 
     [Fact]
     public async Task Post_OpenAccount_Created()
     {
-        await ResetDatabaseAsync();
-
         int customerId = 1;
         AccountType accountType = AccountType.Checking;
-
+        var expectedAccountId = MaxSeededAccountId + 1;
         var request = new OpenAccountRequest(customerId, accountType, initialDeposit: 100);
-        var expectedResponse = new OpenAccountResponse(customerId, accountId: Utilities.MaxDbAccountId + 1, succeeded: true);
+        var expectedResponse = new OpenAccountResponse(customerId, expectedAccountId, succeeded: true);
 
         var response = await _client.PostAsync("api/account/open", JsonContent.Create(request));
 
@@ -55,9 +61,7 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
     [Fact]
     public async Task Post_OpenAccountWithBadCustomerId_NotFound()
     {
-        await ResetDatabaseAsync();
-
-        int invalidCustomerId = 0;
+        int invalidCustomerId = MaxSeededCustomerId + 1;
 
         var request = new OpenAccountRequest(invalidCustomerId, AccountType.Checking, initialDeposit: 100);
         var response = await _client.PostAsync("api/account/open", JsonContent.Create(request));
@@ -67,10 +71,29 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
     }
 
     [Fact]
+    public async void Open_CustomerAccount_VerifyAccountStatus()
+    {
+        var customerId = 1;
+        var initialDeposit = 100;
+        var expectedAccountId = MaxSeededAccountId + 1;
+        var openAccountRequest = new OpenAccountRequest(customerId, AccountType.Savings, initialDeposit);
+        
+        var response = await _client.PostAsync("api/account/open", JsonContent.Create(openAccountRequest));
+        
+        response.EnsureSuccessStatusCode();
+        Assert.Equal("application/json; charset=utf-8", response.Content.Headers.ContentType?.ToString());
+        
+        await using var scope = _factory.Services.CreateAsyncScope();
+        await using var db = scope.ServiceProvider.GetRequiredService<AccountDbContext>();
+        var account = await db.Accounts.FindAsync(expectedAccountId);
+
+        Assert.NotNull(account);
+        Assert.Equal(AccountStatus.OPEN, account.AccountStatus);
+    }
+
+    [Fact]
     public async Task Put_CloseAccount_OK()
     {
-        await ResetDatabaseAsync();
-
         var customerId = 1;
         var accountId = 1;
         var request = new CloseAccountRequest(customerId, accountId);
@@ -86,11 +109,9 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
     [Fact]
     public async Task Put_CloseAccountWithBadCustomerId_NotFound()
     {
-        await ResetDatabaseAsync();
-
-        int invalidCustomerId = Utilities.MaxDbCustomerId + 1;
+        int invalidCustomerId = MaxSeededCustomerId + 1;
         var request = new CloseAccountRequest(invalidCustomerId, accountId: 1);
-
+        
         var response = await _client.PutAsync("api/account/close", JsonContent.Create(request));
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -100,11 +121,9 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
     [Fact]
     public async Task Put_CloseAccountWithBadAccountId_NotFound()
     {
-        await ResetDatabaseAsync();
-
-        int invalidAccountId = Utilities.MaxDbAccountId + 1;
+        int invalidAccountId = MaxSeededAccountId + 1;
         var request = new CloseAccountRequest(customerId: 1, invalidAccountId);
-
+        
         var response = await _client.PutAsync("api/account/close", JsonContent.Create(request));
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -114,9 +133,8 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
     [Fact]
     public async Task Put_CloseAccountWithUnrelatedAccountId_BadRequest()
     {
-        await ResetDatabaseAsync();
-
         var request = new CloseAccountRequest(customerId: 1, accountId: 2);
+        
         var response = await _client.PutAsync("api/account/close", JsonContent.Create(request));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -126,13 +144,11 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
     [Fact]
     public async Task Post_Deposit_Created()
     {
-        await ResetDatabaseAsync();
-
         int customerId = 1;
         int accountId = 1;
         var request = new DepositRequest(customerId, accountId, amount: 100);
         var expectedResponse = new DepositResponse(customerId, accountId, balance: 100, succeeded: true);
-
+     
         var response = await _client.PostAsync("api/account/deposit", JsonContent.Create(request));
 
         response.EnsureSuccessStatusCode();
@@ -145,10 +161,9 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
     [Fact]
     public async void Post_DepositWithBadCustomerId_NotFound()
     {
-        await ResetDatabaseAsync();
-
-        var request = new DepositRequest(customerId: Utilities.MaxDbCustomerId + 1, accountId: 1, 100);
-
+        var invalidCustomerId = MaxSeededCustomerId + 1;
+        var request = new DepositRequest(invalidCustomerId, accountId: 1, 100);
+        
         var response = await _client.PostAsync("api/account/deposit", JsonContent.Create(request));
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -158,10 +173,9 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
     [Fact]
     public async Task Post_DepositWithBadAccountId_NotFound()
     {
-        await ResetDatabaseAsync();
-
-        var request = new DepositRequest(customerId: 1, accountId: Utilities.MaxDbAccountId + 1, 100);
-
+        var invalidAccountId = MaxSeededAccountId + 1;
+        var request = new DepositRequest(customerId: 1, invalidAccountId, amount: 100);
+        
         var response = await _client.PostAsync("api/account/deposit", JsonContent.Create(request));
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -171,10 +185,8 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
     [Fact]
     public async Task Post_DepositWithUnrelatedAccountId_NotFound()
     {
-        await ResetDatabaseAsync();
-
         var request = new DepositRequest(customerId: 1, accountId: 2, 100);
-
+        
         var response = await _client.PostAsync("api/account/deposit", JsonContent.Create(request));
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -184,13 +196,21 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
     [Fact]
     public async Task Post_Withdrawal_Created()
     {
-        await ResetDatabaseAsync();
-
         var customerId = 2;
-        var accountId = 2;
+        var accountId = MaxSeededAccountId + 1;
+        var initialAccountBalance = 100;
         var request = new WithdrawalRequest(customerId, accountId, amount: 100);
-        var expectedResponse = new WithdrawalResponse(customerId, accountId, balance: 100, succeeded: true);
-
+        var expectedResponse = new WithdrawalResponse(customerId, accountId, balance: 0, succeeded: true);
+        
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AccountDbContext>();
+        await db.Accounts.AddAsync(new Account{
+            Id = accountId,
+            CustomerId = customerId,
+            Balance = initialAccountBalance
+        });
+        await db.SaveChangesAsync();
+        
         var response = await _client.PostAsync("api/account/withdrawal", JsonContent.Create(request));
 
         response.EnsureSuccessStatusCode();
@@ -203,9 +223,8 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
     [Fact]
     public async Task Post_WithdrawalWithBadCustomerId_NotFound()
     {
-        await ResetDatabaseAsync();
-
-        var request = new WithdrawalRequest(customerId: Utilities.MaxDbCustomerId + 1, accountId: 1, 100);
+        var invalidCustomerId = MaxSeededCustomerId + 1;
+        var request = new WithdrawalRequest(invalidCustomerId, accountId: 1, 100);
 
         var response = await _client.PostAsync("api/account/withdrawal", JsonContent.Create(request));
 
@@ -216,9 +235,8 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
     [Fact]
     public async Task Post_WithdrawalWithBadAccountId_NotFound()
     {
-        await ResetDatabaseAsync();
-
-        var request = new WithdrawalRequest(customerId: 1, accountId: Utilities.MaxDbAccountId + 1, 100);
+        var invalidAccountId = MaxSeededAccountId + 1;
+        var request = new WithdrawalRequest(customerId: 1, invalidAccountId, amount: 100);
 
         var response = await _client.PostAsync("api/account/withdrawal", JsonContent.Create(request));
 
@@ -229,9 +247,7 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
     [Fact]
     public async Task Post_WithdrawalWithUnrelatedAccountId_NotFound()
     {
-        await ResetDatabaseAsync();
-
-        var request = new WithdrawalRequest(customerId: 1, accountId: 2, 100);
+        var request = new WithdrawalRequest(customerId: 1, accountId: 2, amount: 100);
 
         var response = await _client.PostAsync("api/account/withdrawal", JsonContent.Create(request));
 
@@ -242,14 +258,12 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
     [Fact]
     public async Task Post_DepositWithNegativeAmount_BadRequest()
     {
-        await ResetDatabaseAsync();        
-
-        var request = new DepositRequest(customerId: 1, accountId: 1, -100);
+        var request = new DepositRequest(customerId: 1, accountId: 1, amount: -100);
         var response = await _client.PostAsync("api/account/deposit", JsonContent.Create(request));
         var httpValidationProblemDetails = await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>();
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.Equal(problemJsonMediaTypeHeaderValue, response.Content.Headers.ContentType);
+        Assert.Equal("application/problem+json; charset=utf-8", response.Content.Headers.ContentType?.ToString());
         Assert.NotNull(httpValidationProblemDetails);
         Assert.Contains("Amount", httpValidationProblemDetails.Errors);
     }
@@ -257,14 +271,12 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
     [Fact]
     public async Task Post_WithdrawalWithNegativeAmount_BadRequest()
     {
-        await ResetDatabaseAsync();
-        
-        var request = new WithdrawalRequest(customerId: 1, accountId: 1, -100);
+        var request = new WithdrawalRequest(customerId: 1, accountId: 1, amount: -100);
         var response = await _client.PostAsync("api/account/withdrawal", JsonContent.Create(request));
         var httpValidationProblemDetails = await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>();
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.Equal(problemJsonMediaTypeHeaderValue, response.Content.Headers.ContentType);
+        Assert.Equal("application/problem+json; charset=utf-8", response.Content.Headers.ContentType?.ToString());
         Assert.NotNull(httpValidationProblemDetails);
         Assert.Contains("Amount", httpValidationProblemDetails.Errors);
     }

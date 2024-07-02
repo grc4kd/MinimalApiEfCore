@@ -3,6 +3,7 @@ using Api.Filters;
 using Api.Request;
 using Api.Responses;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Api;
 
@@ -17,9 +18,9 @@ public class AccountController(AccountDbContext context) : ControllerBase
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public ActionResult<OpenAccountResponse> Open(OpenAccountRequest request)
+    public async Task<ActionResult<OpenAccountResponse>> Open(OpenAccountRequest request)
     {
-        var customer = _context.Customers.Find(request.CustomerId);
+        var customer = await _context.Customers.FindAsync(request.CustomerId);
 
         if (customer == null)
         {
@@ -28,8 +29,8 @@ public class AccountController(AccountDbContext context) : ControllerBase
 
         var account = new Account { Customer = customer };
 
-        _context.Accounts.Add(account);
-        _context.SaveChanges();
+        await _context.Accounts.AddAsync(account);
+        await _context.SaveChangesAsync();
 
         return CreatedAtAction(nameof(Open), new OpenAccountResponse(account.CustomerId, account.Id, true));
     }
@@ -38,12 +39,12 @@ public class AccountController(AccountDbContext context) : ControllerBase
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public ActionResult<DepositResponse> Deposit(DepositRequest request)
+    public async Task<ActionResult<DepositResponse>> Deposit(DepositRequest request)
     {
-        var account = _context.Accounts.Where(a =>
-            a.Id == request.AccountId &&
-            a.CustomerId == request.CustomerId)
-            .SingleOrDefault();
+        var account = await _context.Accounts
+            .SingleOrDefaultAsync(a =>
+                a.Id == request.AccountId &&
+                a.CustomerId == request.CustomerId);
 
         if (account == null)
         {
@@ -58,7 +59,7 @@ public class AccountController(AccountDbContext context) : ControllerBase
         {
             return BadRequest(request);
         }
-        _context.SaveChanges();
+        await _context.SaveChangesAsync();
 
         return CreatedAtAction(nameof(Deposit), new DepositResponse(account.CustomerId, account.Id,
             account.Balance, succeeded: true));
@@ -68,25 +69,29 @@ public class AccountController(AccountDbContext context) : ControllerBase
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public ActionResult<WithdrawalResponse> Withdrawal(WithdrawalRequest request)
+    public async Task<ActionResult<WithdrawalResponse>> Withdrawal(WithdrawalRequest request)
     {
-        var account = _context.Accounts.Where(a =>
-            a.Id == request.AccountId &&
-            a.CustomerId == request.CustomerId)
-            .SingleOrDefault();
-        
-        if (account == null) {
+        var account = await _context.Accounts
+            .SingleOrDefaultAsync(a =>
+                a.Id == request.AccountId &&
+                a.CustomerId == request.CustomerId);
+
+        if (account == null)
+        {
             return NotFound(request);
         }
 
-        try {
-            account.MakeWithdrawal((decimal)request.Amount);
-        } catch (ArgumentOutOfRangeException) {
+        try
+        {
+            account.MakeWithdrawal(request.Amount);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
             return BadRequest(request);
         }
-        _context.SaveChanges();
+        await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(Withdrawal), new WithdrawalResponse(account.CustomerId, account.Id, 
+        return CreatedAtAction(nameof(Withdrawal), new WithdrawalResponse(account.CustomerId, account.Id,
             account.Balance, succeeded: true));
     }
 
@@ -94,16 +99,16 @@ public class AccountController(AccountDbContext context) : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public ActionResult<OpenAccountResponse> Close(CloseAccountRequest request)
+    public async Task<ActionResult<OpenAccountResponse>> Close(CloseAccountRequest request)
     {
-        var customer = _context.Customers.Find(request.CustomerId);
+        var customer = await _context.Customers.FindAsync(request.CustomerId);
 
         if (customer == null)
         {
             return NotFound(request);
         }
 
-        var account = _context.Accounts.Find(request.AccountId);
+        var account = await _context.Accounts.FindAsync(request.AccountId);
 
         if (account == null)
         {
@@ -116,7 +121,7 @@ public class AccountController(AccountDbContext context) : ControllerBase
         }
 
         account.Close();
-        _context.SaveChanges();
+        await _context.SaveChangesAsync();
 
         return Ok(new CloseAccountResponse(account.CustomerId, account.Id, true));
     }

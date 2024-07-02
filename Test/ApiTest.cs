@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace Test;
 
-public class ApiTest : IClassFixture<CustomWebApplicationFactory<Program>>
+public class ApiTest : IClassFixture<CustomWebApplicationFactory<Program>>, IAsyncDisposable
 {
     private readonly HttpClient _client;
     private readonly CustomWebApplicationFactory<Program> _factory;
@@ -14,6 +14,12 @@ public class ApiTest : IClassFixture<CustomWebApplicationFactory<Program>>
         {
             AllowAutoRedirect = false
         });
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        GC.SuppressFinalize(this);
+        await _factory.DisposeAsync();
     }
 
     [Theory]

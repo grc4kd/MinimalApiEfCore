@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Api;
 using Api.Data;
+using Api.Data.Seeding;
 using Api.Filters;
 using Microsoft.EntityFrameworkCore;
 
@@ -55,27 +56,15 @@ app.UseHttpsRedirection();
 
 app.MapControllers();
 
-var names = new[]
-{
-    "Jack", "Jill", "Fred", "Tom", "Harry", "George", "Suzan", "Margerie", "Jolene", "Kate"
-};
-
-await using var scope = app.Services.CreateAsyncScope();
+using var scope = app.Services.CreateScope();
 var db = scope.ServiceProvider.GetRequiredService<AccountDbContext>();
-await db.Database.MigrateAsync();
+
+// migrate to the latest schema for the database context
+db.Database.Migrate();
 
 // seed the database if customers table is empty
-if (!await db.Customers.AnyAsync())
-{
-    var customers = Enumerable.Range(1, 5).Select(index =>
-        new Customer {
-            Id = index,
-            Name = names[Random.Shared.Next(names.Length)]
-        });
-
-    await db.AddRangeAsync(customers);
-    await db.SaveChangesAsync();
-}
+var seeder = new AccountDbSeeder(db);
+seeder.SeedDatabase();
 
 var customer = app.MapGroup("/customer");
 
