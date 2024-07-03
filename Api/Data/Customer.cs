@@ -11,4 +11,30 @@ public class Customer
     public required string Name { get; set; }
 
     public ICollection<Account> Accounts { get; } = [];
+
+    public bool HasSavingsAccount()
+    {
+        return Accounts.Any(a => a.AccountType == AccountType.Savings);
+    }
+
+    public Account OpenAccount(AccountType accountType, decimal initialDeposit)
+    {
+        var account = new Account 
+        {
+            CustomerId = Id,
+            AccountStatus = AccountStatus.OPEN,
+            AccountType = accountType,
+            Balance = initialDeposit
+        };
+
+        Accounts.Add(account);
+
+        return account;
+    }
+
+    public override string ToString()
+    {
+        return string.Format("Customer# {0,8:00000000}; Name = {1}",
+            Id, Name);
+    }
 }

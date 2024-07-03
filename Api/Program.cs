@@ -14,7 +14,8 @@ builder.Services.AddDbContext<AccountDbContext>(options =>
     options.UseSqlite("DataSource=Accounts.db");
 });
 
-builder.Services.ConfigureHttpJsonOptions(options => {
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
     // prevent serialization cycles for minimal API endpoints
     options.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
 });
@@ -33,7 +34,12 @@ IConfigurationRoot config = new ConfigurationBuilder()
 Settings? settings = config.GetSection("Settings").Get<Settings>();
 
 // default settings when required section settings is not found
-settings ??= new Settings { MinDepositAmount = 100.00m, MaxDepositAmount = 1_000_000.00m, MaxWithdrawalAmount = 1_000_000.00m };
+settings ??= new Settings
+{
+    MinInitialDepositAmount = 100.00m,
+    MaxDepositAmount = 1_000_000.00m,
+    MaxWithdrawalAmount = 1_000_000.00m
+};
 
 builder.Services.AddSingleton(settings);
 builder.Services.AddScoped<CurrencyActionFilterService>();
@@ -49,24 +55,8 @@ builder.Services.AddControllers()
 
 // add custom error type to the builder pipeline
 builder.Services.AddProblemDetails(options =>
-    options.CustomizeProblemDetails = (context) =>
-    {
-        var accountErrorFeature = context.HttpContext.Features.Get<AccountErrorFeature>();
-
-        if (accountErrorFeature is not null)
-        {
-            (string Detail, string Type) details = accountErrorFeature.AccountError switch
-            {
-                AccountErrorType.InsufficientFundsError => ("The account has insufficient funds.", "https://en.wikipedia.org/wiki/Dishonoured_cheque"),
-                _ => ("Account Error", "Account Error")
-            };
-
-            context.ProblemDetails.Type = details.Type;
-            context.ProblemDetails.Title = "Insufficient Funds";
-            context.ProblemDetails.Detail = details.Detail;
-        }
-    }
-);   
+    options.CustomizeProblemDetails = AccountErrorOptions.CustomizeProblemDetails
+);
 
 var app = builder.Build();
 
@@ -81,15 +71,14 @@ app.UseHttpsRedirection();
 
 app.MapControllers();
 
-using var scope = app.Services.CreateScope();
-var db = scope.ServiceProvider.GetRequiredService<AccountDbContext>();
+await using var scope = app.Services.CreateAsyncScope();
+await using var db = scope.ServiceProvider.GetRequiredService<AccountDbContext>();
 
 // migrate to the latest schema for the database context
-db.Database.Migrate();
+await db.Database.MigrateAsync();
 
 // seed the database if customers table is empty
-var seeder = new AccountDbSeeder(db);
-seeder.SeedDatabase();
+await AccountDbSeeder.SeedDatabaseAsync(db);
 
 var customer = app.MapGroup("/customer");
 
@@ -122,7 +111,7 @@ account.MapGet("/{id}", async (AccountDbContext db, int id) =>
     var account = await db.Accounts
         .Include(a => a.Customer)
         .SingleOrDefaultAsync(a => a.Id == id);
-    
+
     if (account != null)
     {
         return TypedResults.Created($"/account/{account.Id}", account);
@@ -136,3 +125,4 @@ account.MapGet("/{id}", async (AccountDbContext db, int id) =>
 app.Run();
 
 public partial class Program { }
+

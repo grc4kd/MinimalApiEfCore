@@ -1,4 +1,5 @@
 using System.Net;
+using Api.Data;
 using Api.Request;
 using Microsoft.AspNetCore.Mvc.Testing;
 
@@ -50,6 +51,15 @@ public class ActionFilterTest : IClassFixture<CustomWebApplicationFactory<Progra
     {
         var request = new WithdrawalRequest(customerId: 1, accountId: 1, decimal.MaxValue);
         var response = await _client.PostAsync("api/account/withdrawal", JsonContent.Create(request));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Post_OpenAccountWithoutMinimumDeposit_BadRequest()
+    {
+        var request = new OpenAccountRequest(customerId: 1, accountType: AccountType.Savings, 20);
+        var response = await _client.PostAsync("api/account/open", JsonContent.Create(request));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }

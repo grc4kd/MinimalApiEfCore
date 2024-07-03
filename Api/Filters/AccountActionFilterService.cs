@@ -8,16 +8,16 @@ namespace Api.Filters;
 
 public class AccountActionFilterService(Settings settings) : IAsyncActionFilter
 {
-    private readonly DepositRequestValidator depositRequestValidator = new(settings.MinDepositAmount);
+    private readonly OpenAccountRequestValidator openAccountRequestValidator = new(settings.MinInitialDepositAmount);
     private readonly WithdrawalRequestValidator withdrawalRequestValidator = new();
 
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
         if (context.ActionArguments.TryGetValue("request", out var request))
         {
-            if (request is DepositRequest depositRequest) 
+            if (request is OpenAccountRequest openAccountRequest) 
             {
-                var validationResult = await depositRequestValidator.ValidateAsync(depositRequest);
+                var validationResult = await openAccountRequestValidator.ValidateAsync(openAccountRequest);
                 if (!validationResult.IsValid)
                 {
                     Adapter.ValidationResultToModelStateAsync(context, validationResult);

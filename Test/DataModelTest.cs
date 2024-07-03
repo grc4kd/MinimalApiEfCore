@@ -65,4 +65,37 @@ public class DataModelTest
 
         Assert.IsType<InsufficientFundsResponse>(response);
     }
+
+    [Fact]
+    public void Customer_HasSavingsAccount_TrueTest()
+    {
+        var customer = new Customer() { Name = "Stan"};
+        customer.Accounts.Add(new Account{AccountType = AccountType.Savings});
+
+        Assert.True(customer.HasSavingsAccount());
+    }
+
+    [Fact]
+    public void Customer_HasSavingsAccount_FalseTest()
+    {
+        var customer = new Customer() { Name = "Eric"};
+
+        Assert.False(customer.HasSavingsAccount());
+    }
+
+    [Fact]
+    public void Customer_OpenAccount_ReturnsNewAccountForCustomer()
+    {
+        var initialDeposit = 100m;
+        var accountType = AccountType.Savings;
+        var customer = new Customer() { Id = 1, Name = "Cindy" };
+
+        var account = customer.OpenAccount(accountType, initialDeposit);
+
+        Assert.Contains(account, customer.Accounts);
+        Assert.Equal(initialDeposit, account.Balance);
+        Assert.Equal(accountType, account.AccountType);
+        Assert.Equal(AccountStatus.OPEN, account.AccountStatus);
+        Assert.Equal(customer.Id, account.CustomerId);
+    }
 }

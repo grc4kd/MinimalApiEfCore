@@ -6,6 +6,8 @@ using Api.Responses;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Writers;
+using Microsoft.VisualBasic;
 
 namespace Test;
 
@@ -33,14 +35,13 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
     private async Task ResetDatabaseAsync() {
         await using var scope = _factory.Services.CreateAsyncScope();
         await using var db = scope.ServiceProvider.GetRequiredService<AccountDbContext>();
-        await using var seeder = scope.ServiceProvider.GetRequiredService<AccountDbSeeder>();
         db.RemoveRange(db.Customers);
         db.RemoveRange(db.Accounts);
         await db.SaveChangesAsync();
-        await seeder.SeedDatabaseAsync();
+        await AccountDbSeeder.SeedDatabaseAsync(db);
 
-        MaxSeededAccountId = seeder.MaxSeededAccountId;
-        MaxSeededCustomerId = seeder.MaxSeededCustomerId;
+        MaxSeededAccountId = AccountDbSeeder.MaxSeededAccountId;
+        MaxSeededCustomerId = AccountDbSeeder.MaxSeededCustomerId;
     }
 
     public ValueTask DisposeAsync()
@@ -55,7 +56,7 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
         await ResetDatabaseAsync();
 
         int customerId = 1;
-        AccountType accountType = AccountType.Checking;
+        AccountType accountType = AccountType.Savings;
         var request = new OpenAccountRequest(customerId, accountType, initialDeposit: 100);
 
         var response = await _client.PostAsync("api/account/open", JsonContent.Create(request));
@@ -349,21 +350,25 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
     }
 
     [Fact]
-    public async Task Post_DepositLessThanMinimumDeposit_BadRequest()
+    public async Task Post_OpenCheckingAccountBeforeSavingsAccount_BadRequest()
     {
-        await ResetDatabaseAsync();
+        await using var scope = _factory.Services.CreateAsyncScope();
+        await using var db = scope.ServiceProvider.GetRequiredService<AccountDbContext>();
+        var customer = new Customer {
+            Name = "Frank"
+        };
+        await db.AddAsync(customer);
+        await db.SaveChangesAsync();
 
-        var customerId = 1;
-        var accountId = 1;
-        var request = new DepositRequest(customerId, accountId, amount: 20m);
+        var request = new OpenAccountRequest(customer.Id, AccountType.Checking, 100m);
 
-        var response = await _client.PostAsync("api/account/deposit", JsonContent.Create(request));
+        var response = await _client.PostAsync("api/account/open", JsonContent.Create(request));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
         var modelStateDictionary = await response.Content.ReadFromJsonAsync<IReadOnlyDictionary<string, string[]>>();
 
         Assert.NotNull(modelStateDictionary);
-        Assert.Contains(modelStateDictionary, f => f.Key == nameof(DepositRequest.Amount));
+        Assert.Contains(nameof(AccountType), modelStateDictionary);
     }
 }

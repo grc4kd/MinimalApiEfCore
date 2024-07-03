@@ -8,6 +8,7 @@ public class Account
     public int CustomerId { get; set; }
     public Customer Customer { get; set; } = null!;
     public AccountStatus AccountStatus { get; set; }
+    public AccountType AccountType { get; set; }
     public decimal Balance { get; set; }
 
     public IAccountResponse CheckBalanceBeforeWithdrawal(decimal amountToWithdrawal)

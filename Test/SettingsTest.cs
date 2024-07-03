@@ -28,4 +28,10 @@ public class SettingsTest : IClassFixture<CustomWebApplicationFactory<Program>>
     {
         Assert.Equal(1000000, _settings.MaxDepositAmount);
     }
+
+    [Fact]
+    public void Settings_MinInitialDepositAmount_Check()
+    {
+        Assert.Equal(100, _settings.MinInitialDepositAmount);
+    }
 }

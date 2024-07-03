@@ -2,35 +2,21 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Api.Data.Seeding;
 
-public class AccountDbSeeder(AccountDbContext db) : IDisposable, IAsyncDisposable
+public class AccountDbSeeder
 {
-    public int MaxSeededAccountId { get; private set; }
-    public int MaxSeededCustomerId { get; private set; }
+    public static int MaxSeededAccountId { get; private set; }
+    public static int MaxSeededCustomerId { get; private set; }
 
-    private readonly AccountDbContext _db = db;
-
-    public void SeedDatabase() {
-        // seed the database only if the customers table is empty
-        if (!_db.Customers.Any())
-        {
-            _db.AddRange(GetAccountSeedData());
-            _db.SaveChanges();
-        }
-
-        MaxSeededAccountId = _db.Accounts.Max(a => a.Id);
-        MaxSeededCustomerId = _db.Customers.Max(c => c.Id);
-    }
-
-    public async Task SeedDatabaseAsync() {
+    public static async Task SeedDatabaseAsync(AccountDbContext db) {
         // seed the database only if the customer table is empty
-        if (!await _db.Customers.AnyAsync())
+        if (!await db.Customers.AnyAsync())
         {
-            await _db.AddRangeAsync(GetAccountSeedData());
-            await _db.SaveChangesAsync();
+            await db.AddRangeAsync(GetAccountSeedData());
+            await db.SaveChangesAsync();
         }
 
-        MaxSeededAccountId = await _db.Accounts.MaxAsync(a => a.Id);
-        MaxSeededCustomerId = await _db.Customers.MaxAsync(c => c.Id);
+        MaxSeededAccountId = await db.Accounts.MaxAsync(a => a.Id);
+        MaxSeededCustomerId = await db.Customers.MaxAsync(c => c.Id);
     }
 
     private static IEnumerable<Account> GetAccountSeedData()
@@ -51,17 +37,5 @@ public class AccountDbSeeder(AccountDbContext db) : IDisposable, IAsyncDisposabl
                 }
             }
         );
-    }
-
-    public void Dispose()
-    {
-        GC.SuppressFinalize(this);
-        _db.Dispose();
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        GC.SuppressFinalize(this);
-        await _db.DisposeAsync();
     }
 }

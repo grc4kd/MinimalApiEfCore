@@ -21,6 +21,7 @@ public class CurrencyAmountRequestValidator : AbstractValidator<ICurrencyAmountR
         int DepositPrecision = (int)Math.Log10((double)maxDepositAmount) + maxDepositAmount.Scale + 1;
         int WithdrawalPrecision = (int)Math.Log10((double)maxWithdrawalAmount) + maxWithdrawalAmount.Scale + 1;
 
+        RuleFor(r => r.Amount).GreaterThan(0);
         RuleFor(r => r.Amount).PrecisionScale(DepositPrecision, maxDepositAmount.Scale, true).When(r => r is DepositRequest);
         RuleFor(r => r.Amount).PrecisionScale(WithdrawalPrecision, maxWithdrawalAmount.Scale, true).When(r => r is WithdrawalRequest);
     }

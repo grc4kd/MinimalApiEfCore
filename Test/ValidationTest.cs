@@ -1,4 +1,5 @@
 using Api;
+using Api.Data;
 using Api.Filters;
 using Api.Request;
 using Api.Validators;
@@ -9,22 +10,6 @@ namespace Test;
 
 public class ValidationTest
 {
-    [InlineData(1, 1, -1)]
-    [InlineData(1, 1, 0)]
-    [InlineData(1, 1, 99.99)]
-    [Theory]
-    public async Task ValidateRequest_DepositRequest_TestValidate(
-        int customerId, int accountId, decimal amount
-    )
-    {
-        var request = new DepositRequest(customerId, accountId, amount);
-        var validator = new DepositRequestValidator(minDepositAmount: 100.00m);
-
-        var result = await validator.TestValidateAsync(request);
-        
-        result.ShouldHaveValidationErrorFor(request => request.Amount);
-    }
-
     [InlineData(1, 1, -1)]
     [InlineData(1, 1, 0)]
     [Theory]
@@ -58,15 +43,15 @@ public class ValidationTest
     [Fact]
     public void AccountActionFilterService_MinDepositAmount_TestConfigException()
     {
-        Settings settings = new() { MaxDepositAmount = 1_000_000, MaxWithdrawalAmount = 1_000_000, MinDepositAmount = 0 };
+        Settings settings = new() { MaxDepositAmount = 1_000_000, MaxWithdrawalAmount = 1_000_000, MinInitialDepositAmount = 0 };
 
-        Assert.Throws<ArgumentOutOfRangeException>("minDepositAmount", () => new AccountActionFilterService(settings));
+        Assert.Throws<ArgumentOutOfRangeException>("minInitialDepositAmount", () => new AccountActionFilterService(settings));
     }
 
     [Fact]
     public void CurrencyActionFilterService_MaxDepositAmount_TestConfigException()
     {
-        Settings settings = new() { MaxDepositAmount = 0, MaxWithdrawalAmount = 1_000_000, MinDepositAmount = 1_000_000 };
+        Settings settings = new() { MaxDepositAmount = 0, MaxWithdrawalAmount = 1_000_000, MinInitialDepositAmount = 1_000_000 };
     
         Assert.Throws<ArgumentOutOfRangeException>("maxDepositAmount", () => new CurrencyActionFilterService(settings));
     }
@@ -74,8 +59,19 @@ public class ValidationTest
     [Fact]
     public void CurrencyActionFilterService_MaxWithdrawalAmount_TestConfigException()
     {
-        Settings settings = new() { MaxDepositAmount = 1_000_000, MaxWithdrawalAmount = 0, MinDepositAmount = 1_000_000 };
+        Settings settings = new() { MaxDepositAmount = 1_000_000, MaxWithdrawalAmount = 0, MinInitialDepositAmount = 1_000_000 };
     
         Assert.Throws<ArgumentOutOfRangeException>("maxWithdrawalAmount", () => new CurrencyActionFilterService(settings));
+    }
+
+    [Fact]
+    public async Task OpenAccountRequestValidator_TestDefaults()
+    {
+        var openAccountRequest = new OpenAccountRequest(customerId: 1, AccountType.Savings, initialDeposit: 20);
+        var openAccountRequestValidator = new OpenAccountRequestValidator();
+
+        var result = await openAccountRequestValidator.TestValidateAsync(openAccountRequest);
+
+        result.ShouldHaveValidationErrorFor(r => r.InitialDeposit);
     }
 }

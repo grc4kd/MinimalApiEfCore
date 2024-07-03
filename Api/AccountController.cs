@@ -33,12 +33,13 @@ public class AccountController : ControllerBase
             return NotFound(request);
         }
 
-        var account = new Account {
-            Customer = customer,
-            Balance = request.InitialDeposit
-        };
+        if (request.AccountType == AccountType.Checking && !customer.HasSavingsAccount()) {
+            ModelState.AddModelError(nameof(request.AccountType), 
+                $"{nameof(request.AccountType)} {request.AccountType} cannot be opened without creating an open {AccountType.Savings} account for customer {customer}.");
+            return BadRequest(ModelState);
+        }
 
-        await _context.AddAsync(account);
+        var account = customer.OpenAccount(request.AccountType, request.InitialDeposit);
         await _context.SaveChangesAsync();
 
         return CreatedAtAction(nameof(Open), new OpenAccountResponse(account.CustomerId, account.Id, true));
