@@ -1,7 +1,11 @@
+using Api.Errors;
+
 namespace Api.Responses;
 
 public class InsufficientFundsResponse : IAccountResponse
 {
+    private static readonly AccountErrorFeature _error = new() 
+        { AccountError = AccountErrorType.InsufficientFundsError };
     public bool IsValid => false;
-    public string ErrorMessage => "Account has insufficient funds.";
+    public AccountErrorFeature Error => _error;
 }

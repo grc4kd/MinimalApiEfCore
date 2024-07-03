@@ -1,8 +1,12 @@
+using Api.Errors;
+
 namespace Api.Responses;
 
 public class FundsAvailableResponse : IAccountResponse
 {
+    private static readonly AccountErrorFeature Empty = new();
+    
     public bool IsValid => true;
 
-    public string ErrorMessage => string.Empty;
+    public AccountErrorFeature Error => Empty;
 }

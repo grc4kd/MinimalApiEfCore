@@ -4,8 +4,6 @@ using Api.Data;
 using Api.Data.Seeding;
 using Api.Errors;
 using Api.Filters;
-using Api.Request;
-using Api.Validators;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 

@@ -86,8 +86,7 @@ public class AccountController(AccountDbContext context) : ControllerBase
             account.MakeWithdrawal(request.Amount);
             await _context.SaveChangesAsync();
         } else {
-            var errorType = new AccountErrorFeature { AccountError = AccountErrorType.InsufficientFundsError };
-            HttpContext.Features.Set(errorType);
+            HttpContext.Features.Set(balanceTest.Error);
             return BadRequest();
         }
 
