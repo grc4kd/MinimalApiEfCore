@@ -2,7 +2,11 @@ using System.Text.Json.Serialization;
 using Api;
 using Api.Data;
 using Api.Data.Seeding;
+using Api.Errors;
 using Api.Filters;
+using Api.Request;
+using Api.Validators;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -42,6 +46,27 @@ settings ??= new Settings { MaxWithdrawalAmount = decimal.MaxValue, MaxDepositAm
 
 CurrencyActionFilter.MaxDepositAmount = settings.MaxDepositAmount;
 CurrencyActionFilter.MaxWithdrawalAmount = settings.MaxWithdrawalAmount;
+
+// add custom error type to the builder pipeline
+builder.Services.AddProblemDetails(options =>
+    options.CustomizeProblemDetails = (context) =>
+    {
+        var accountErrorFeature = context.HttpContext.Features.Get<AccountErrorFeature>();
+
+        if (accountErrorFeature is not null)
+        {
+            (string Detail, string Type) details = accountErrorFeature.AccountError switch
+            {
+                AccountErrorType.InsufficientFundsError => ("The account has insufficient funds.", "https://en.wikipedia.org/wiki/Dishonoured_cheque"),
+                _ => ("Account Error", "Account Error")
+            };
+
+            context.ProblemDetails.Type = details.Type;
+            context.ProblemDetails.Title = "Insufficient Funds";
+            context.ProblemDetails.Detail = details.Detail;
+        }
+    }
+);   
 
 var app = builder.Build();
 

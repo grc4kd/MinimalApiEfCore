@@ -1,5 +1,6 @@
 using Api.Data;
 using Api.Request;
+using Api.Responses;
 
 namespace Test;
 
@@ -38,14 +39,6 @@ public class DataModelTest
     }
 
     [Fact]
-    public void Account_MakeWithdrawalWithNegativeValue_ArgumentOutOfRangeException()
-    {
-        var account = new Account();
-
-        Assert.Throws<ArgumentOutOfRangeException>(() => account.MakeWithdrawal(-100m));
-    }
-
-    [Fact]
     public void DepositRequest_UsesColumnTypeCode_Decimal()
     {
         var request = new DepositRequest(customerId: 1, accountId: 1, amount: 100);
@@ -59,5 +52,17 @@ public class DataModelTest
         var request = new WithdrawalRequest(customerId: 1, accountId: 1, amount: 100);
 
         Assert.Equal(TypeCode.Decimal, request.Amount.GetTypeCode());
+    }
+
+    [Fact]
+    public void Account_InsufficientFunds_ReturnInsufficientFundsResponse()
+    {
+        var account = new Account {
+            Balance = 100
+        };
+
+        var response = account.CheckBalanceBeforeWithdrawal(amountToWithdrawal: 100.01m);
+
+        Assert.IsType<InsufficientFundsResponse>(response);
     }
 }

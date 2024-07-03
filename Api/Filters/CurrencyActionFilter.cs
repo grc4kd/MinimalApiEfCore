@@ -6,8 +6,11 @@ namespace Api.Filters;
 
 public class CurrencyActionFilter : ActionFilterAttribute
 {
-    public static decimal MaxDepositAmount { get; set; } = (decimal)Math.Pow(10, 9);
-    public static decimal MaxWithdrawalAmount { get; set; } = (decimal)Math.Pow(10, 9);
+    const decimal DefaultMaxDepositAmount = 1_000_000_000;
+    const decimal DefaultMaxWithdrawalAmount = 1_000_000_000;
+
+    public static decimal MaxDepositAmount { get; set; } = DefaultMaxDepositAmount;
+    public static decimal MaxWithdrawalAmount { get; set; } = DefaultMaxWithdrawalAmount;
 
     public override void OnActionExecuting(ActionExecutingContext context)
     {

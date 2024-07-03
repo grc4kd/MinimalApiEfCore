@@ -1,5 +1,6 @@
 using System.Data.Common;
 using Api.Data;
+using Api.Data.Seeding;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -40,6 +41,8 @@ public class CustomWebApplicationFactory<TProgram>
                 var connection = container.GetRequiredService<DbConnection>();
                 options.UseSqlite(connection);
             });
+
+            services.AddTransient<AccountDbSeeder>();
         });
 
         builder.UseEnvironment("Development");

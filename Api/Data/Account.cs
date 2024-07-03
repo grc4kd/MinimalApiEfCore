@@ -1,4 +1,4 @@
-
+using Api.Responses;
 
 namespace Api.Data;
 
@@ -9,6 +9,15 @@ public class Account
     public Customer Customer { get; set; } = null!;
     public AccountStatus AccountStatus { get; set; }
     public decimal Balance { get; set; }
+
+    public IAccountResponse CheckBalanceBeforeWithdrawal(decimal amountToWithdrawal)
+    {
+        if (Balance < amountToWithdrawal) {
+            return new InsufficientFundsResponse();
+        }
+
+        return new FundsAvailableResponse();
+    }
 
     public void Close()
     {
@@ -24,7 +33,7 @@ public class Account
 
     public void MakeWithdrawal(decimal amount)
     {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(amount);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(amount, Balance);
 
         Balance -= amount;
     }
