@@ -1,5 +1,4 @@
 using Api.Data;
-using Api.Errors;
 using Api.Filters;
 using Api.Request;
 using Api.Responses;
@@ -10,11 +9,16 @@ namespace Api;
 
 [ApiController]
 [Route("api/[controller]")]
-[CurrencyActionFilter]
-[AccountActionFilter]
-public class AccountController(AccountDbContext context) : ControllerBase
+[ServiceFilter<CurrencyActionFilterService>]
+[ServiceFilter<AccountActionFilterService>]
+public class AccountController : ControllerBase
 {
-    private readonly AccountDbContext _context = context;
+    private readonly AccountDbContext _context;
+
+    public AccountController(AccountDbContext context)
+    {
+        _context = context;
+    }
 
     [HttpPost("open")]
     [ProducesResponseType(StatusCodes.Status201Created)]

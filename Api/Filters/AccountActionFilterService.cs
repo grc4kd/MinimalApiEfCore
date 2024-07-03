@@ -1,26 +1,26 @@
-using Api.Data;
 using Api.Request;
 using Api.Validators;
-using FluentValidation;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+
+using Adapter = Api.Validators.FluentValidationResultModelStateAdapter;
 
 namespace Api.Filters;
 
-public class AccountActionFilter : ActionFilterAttribute
+public class AccountActionFilterService(Settings settings) : IAsyncActionFilter
 {
-    private readonly DepositRequestValidator depositRequestValidator = new();
+    private readonly DepositRequestValidator depositRequestValidator = new(settings.MinDepositAmount);
     private readonly WithdrawalRequestValidator withdrawalRequestValidator = new();
 
-    public override async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
+    public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
         if (context.ActionArguments.TryGetValue("request", out var request))
         {
             if (request is DepositRequest depositRequest) 
             {
                 var validationResult = await depositRequestValidator.ValidateAsync(depositRequest);
-                if (!validationResult.IsValid) {
-                    context.Result = new BadRequestObjectResult(validationResult.Errors);
+                if (!validationResult.IsValid)
+                {
+                    Adapter.ValidationResultToModelStateAsync(context, validationResult);
                     return;
                 }
             }
@@ -29,7 +29,7 @@ public class AccountActionFilter : ActionFilterAttribute
             {
                 var validationResult = await withdrawalRequestValidator.ValidateAsync(withdrawalRequest);
                 if (!validationResult.IsValid) {
-                    context.Result = new BadRequestObjectResult(validationResult.Errors);
+                    Adapter.ValidationResultToModelStateAsync(context, validationResult);
                     return;
                 }
             }

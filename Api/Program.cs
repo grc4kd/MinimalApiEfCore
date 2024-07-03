@@ -14,14 +14,6 @@ builder.Services.AddDbContext<AccountDbContext>(options =>
     options.UseSqlite("DataSource=Accounts.db");
 });
 
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        // do not serialize cyclical references found in the object graph of entities
-        // to prevent cycles after fix-up of entity navigation properties
-        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-    });
-
 builder.Services.ConfigureHttpJsonOptions(options => {
     // prevent serialization cycles for minimal API endpoints
     options.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
@@ -39,11 +31,21 @@ IConfigurationRoot config = new ConfigurationBuilder()
     .Build();
 
 Settings? settings = config.GetSection("Settings").Get<Settings>();
-// default settings when required section settings is not found
-settings ??= new Settings { MaxWithdrawalAmount = decimal.MaxValue, MaxDepositAmount = decimal.MaxValue };
 
-CurrencyActionFilter.MaxDepositAmount = settings.MaxDepositAmount;
-CurrencyActionFilter.MaxWithdrawalAmount = settings.MaxWithdrawalAmount;
+// default settings when required section settings is not found
+settings ??= new Settings { MinDepositAmount = 100.00m, MaxDepositAmount = 1_000_000.00m, MaxWithdrawalAmount = 1_000_000.00m };
+
+builder.Services.AddSingleton(settings);
+builder.Services.AddScoped<CurrencyActionFilterService>();
+builder.Services.AddScoped<AccountActionFilterService>();
+
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // do not serialize cyclical references found in the object graph of entities
+        // to prevent cycles after fix-up of entity navigation properties
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+    });
 
 // add custom error type to the builder pipeline
 builder.Services.AddProblemDetails(options =>

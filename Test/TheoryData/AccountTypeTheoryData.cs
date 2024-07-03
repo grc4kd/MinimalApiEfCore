@@ -1,10 +1,10 @@
 using Api.Data;
 
-namespace Test;
+namespace Test.TheoryData;
 
 public class AccountTypeTheoryData : TheoryData<AccountType>
 {
-    public AccountTypeTheoryData() 
+    public AccountTypeTheoryData()
     {
         foreach (var accountType in Enum.GetValues<AccountType>())
         {

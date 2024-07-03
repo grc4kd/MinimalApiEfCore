@@ -4,4 +4,5 @@ public sealed class Settings
 {
     public required decimal MaxDepositAmount { get; set; }
     public required decimal MaxWithdrawalAmount { get; set; }
+    public required decimal MinDepositAmount { get; set; }
 }

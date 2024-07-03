@@ -3,8 +3,6 @@ using Api.Data;
 using Api.Data.Seeding;
 using Api.Request;
 using Api.Responses;
-using FluentValidation.Results;
-using FluentValidation.Validators;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -308,11 +306,10 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        var validationFailures = await response.Content.ReadFromJsonAsync<List<ValidationFailure>>();
+        var modelStateDictionary = await response.Content.ReadFromJsonAsync<IReadOnlyDictionary<string, string[]>>();
 
-        Assert.NotNull(validationFailures);
-        Assert.Contains(validationFailures, f => f.ErrorCode == "GreaterThanOrEqualValidator");
-        Assert.Contains(validationFailures, f => f.PropertyName == nameof(DepositRequest.Amount));
+        Assert.NotNull(modelStateDictionary);
+        Assert.Contains(modelStateDictionary, f => f.Key == nameof(DepositRequest.Amount));
     }
 
     [Fact]
@@ -326,11 +323,10 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        var validationFailures = await response.Content.ReadFromJsonAsync<List<ValidationFailure>>();
+        var modelStateDictionary = await response.Content.ReadFromJsonAsync<IReadOnlyDictionary<string, string[]>>();
 
-        Assert.NotNull(validationFailures);
-        Assert.Contains(validationFailures, f => f.ErrorCode == "GreaterThanOrEqualValidator");
-        Assert.Contains(validationFailures, f => f.PropertyName == nameof(WithdrawalRequest.Amount));
+        Assert.NotNull(modelStateDictionary);
+        Assert.Contains(modelStateDictionary, f => f.Key == nameof(WithdrawalRequest.Amount));
     }
 
     [Fact]
@@ -350,5 +346,24 @@ public class AccountControllerTest : IClassFixture<CustomWebApplicationFactory<P
 
         Assert.NotNull(problemDetails);
         Assert.Equal("Insufficient Funds", problemDetails.Title);
+    }
+
+    [Fact]
+    public async Task Post_DepositLessThanMinimumDeposit_BadRequest()
+    {
+        await ResetDatabaseAsync();
+
+        var customerId = 1;
+        var accountId = 1;
+        var request = new DepositRequest(customerId, accountId, amount: 20m);
+
+        var response = await _client.PostAsync("api/account/deposit", JsonContent.Create(request));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var modelStateDictionary = await response.Content.ReadFromJsonAsync<IReadOnlyDictionary<string, string[]>>();
+
+        Assert.NotNull(modelStateDictionary);
+        Assert.Contains(modelStateDictionary, f => f.Key == nameof(DepositRequest.Amount));
     }
 }

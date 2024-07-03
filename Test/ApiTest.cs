@@ -25,6 +25,7 @@ public class ApiTest : IClassFixture<CustomWebApplicationFactory<Program>>, IAsy
     [Theory]
     [InlineData("/customer")]
     [InlineData("/account")]
+    [InlineData("/account/1")]
     public async Task Get_EndpointsReturnSuccessAndCorrectContentType(string url)
     {
         var response = await _client.GetAsync(url);
