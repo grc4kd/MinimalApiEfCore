@@ -1,4 +1,4 @@
-using Api.Request;
+using Api.Requests;
 using Api.Validators;
 using Microsoft.AspNetCore.Mvc.Filters;
 
@@ -15,7 +15,7 @@ public class AccountActionFilterService(Settings settings) : IAsyncActionFilter
     {
         if (context.ActionArguments.TryGetValue("request", out var request))
         {
-            if (request is OpenAccountRequest openAccountRequest) 
+            if (request is OpenAccountRequest openAccountRequest)
             {
                 var validationResult = await openAccountRequestValidator.ValidateAsync(openAccountRequest);
                 if (!validationResult.IsValid)
@@ -25,10 +25,11 @@ public class AccountActionFilterService(Settings settings) : IAsyncActionFilter
                 }
             }
 
-            if (request is WithdrawalRequest withdrawalRequest) 
+            if (request is WithdrawalRequest withdrawalRequest)
             {
                 var validationResult = await withdrawalRequestValidator.ValidateAsync(withdrawalRequest);
-                if (!validationResult.IsValid) {
+                if (!validationResult.IsValid)
+                {
                     Adapter.ValidationResultToModelStateAsync(context, validationResult);
                     return;
                 }

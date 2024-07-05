@@ -1,11 +1,9 @@
-using Api.Errors;
+using Domain.Accounts.Responses;
 
 namespace Api.Responses;
 
-public class InsufficientFundsResponse : IAccountResponse
+public class InsufficientFundsResponse(int accountId) : IWithdrawalResponse
 {
-    private static readonly AccountErrorFeature _error = new() 
-        { AccountError = AccountErrorType.InsufficientFundsError };
-    public bool IsValid => false;
-    public AccountErrorFeature Error => _error;
+    public int AccountId => accountId;
+    public bool Succeeded => false;
 }

@@ -1,9 +1,8 @@
-using Api.Data;
-using Api.Filters;
-using Api.Request;
-using Api.Responses;
+using Domain.Accounts;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Api.Responses;
+using Api.Filters;
+using Api.Requests;
 
 namespace Api;
 
@@ -11,118 +10,98 @@ namespace Api;
 [Route("api/[controller]")]
 [ServiceFilter<CurrencyActionFilterService>]
 [ServiceFilter<AccountActionFilterService>]
-public class AccountController : ControllerBase
+public class AccountController(IAccountRepository repository) : ControllerBase
 {
-    private readonly AccountDbContext _context;
-
-    public AccountController(AccountDbContext context)
-    {
-        _context = context;
-    }
+    private readonly IAccountRepository _repository = repository;
 
     [HttpPost("open")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<OpenAccountResponse>> Open(OpenAccountRequest request)
+    public async Task<IActionResult> Open(OpenAccountRequest request)
     {
-        var customer = await _context.Customers.FindAsync(request.CustomerId);
+        var response = await _repository.OpenAsync(request);
 
-        if (customer == null)
+        if (response is CustomerNotFoundResponse)
         {
-            return NotFound(request);
+            return NotFound(response);
         }
 
-        if (request.AccountType == AccountType.Checking && !customer.HasSavingsAccount()) {
-            ModelState.AddModelError(nameof(request.AccountType), 
-                $"{nameof(request.AccountType)} {request.AccountType} cannot be opened without creating an open {AccountType.Savings} account for customer {customer}.");
-            return BadRequest(ModelState);
+        if (!response.Succeeded)
+        {
+
+            return BadRequest(response);
         }
 
-        var account = customer.OpenAccount(request.AccountType, request.InitialDeposit);
-        await _context.SaveChangesAsync();
+        if (response is OpenAccountResponse openAccountResponse)
+        {
+            return CreatedAtAction(nameof(Open), new { id = openAccountResponse.AccountId }, openAccountResponse);
+        }
 
-        return CreatedAtAction(nameof(Open), new OpenAccountResponse(account.CustomerId, account.Id, true));
+        return NotFound(request);
     }
 
     [HttpPost("deposit")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<DepositResponse>> Deposit(DepositRequest request)
+    public async Task<IActionResult> Deposit(DepositRequest request)
     {
-        var account = await _context.Accounts
-            .SingleOrDefaultAsync(a =>
-                a.Id == request.AccountId &&
-                a.CustomerId == request.CustomerId);
+        var response = await _repository.DepositAsync(request);
 
-        if (account == null)
+        if (response is AccountNotFoundResponse)
         {
-            return NotFound(request);
+            return NotFound(response);
         }
 
-        account.MakeDeposit(request.Amount);
-            
-        await _context.SaveChangesAsync();
+        if (!response.Succeeded)
+        {
+            return BadRequest(response);
+        }
 
-        return CreatedAtAction(nameof(Deposit), new DepositResponse(account.CustomerId, account.Id,
-            account.Balance, succeeded: true));
+        return CreatedAtAction(nameof(Deposit), new { id = response.AccountId }, response);
     }
 
     [HttpPost("withdrawal")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<WithdrawalResponse>> Withdrawal(WithdrawalRequest request)
+    public async Task<IActionResult> Withdrawal(WithdrawalRequest request)
     {
-        var account = await _context.Accounts
-            .SingleOrDefaultAsync(a =>
-                a.Id == request.AccountId &&
-                a.CustomerId == request.CustomerId);
+        var response = await _repository.WithdrawalAsync(request);
 
-        if (account == null)
+        if (response is AccountNotFoundResponse)
         {
-            return NotFound(request);
+            return NotFound(response);
         }
 
-        var balanceTest = account.CheckBalanceBeforeWithdrawal(request.Amount);
+        if (!response.Succeeded)
+        {
 
-        if (balanceTest.IsValid) {
-            account.MakeWithdrawal(request.Amount);
-            await _context.SaveChangesAsync();
-        } else {
-            HttpContext.Features.Set(balanceTest.Error);
-            return BadRequest();
+            return BadRequest(response);
         }
 
-        return CreatedAtAction(nameof(Withdrawal), new WithdrawalResponse(account.CustomerId, account.Id,
-            account.Balance, succeeded: true));
+        return CreatedAtAction(nameof(Withdrawal), new { id = response.AccountId }, response);
     }
 
     [HttpPut("close")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<OpenAccountResponse>> Close(CloseAccountRequest request)
+    public async Task<IActionResult> Close(CloseAccountRequest request)
     {
-        var account = await _context.Accounts
-            .SingleOrDefaultAsync(a =>
-                a.Id == request.AccountId &&
-                a.CustomerId == request.CustomerId);
+        var response = await _repository.CloseAsync(request);
 
-        if (account == null)
+        if (response is AccountNotFoundResponse)
         {
-            return NotFound(request);
+            return NotFound(response);
         }
 
-        if (account.CustomerId != request.CustomerId)
+        if (!response.Succeeded)
         {
-            return BadRequest(request);
+            return BadRequest(response);
         }
 
-        account.Close();
-        await _context.SaveChangesAsync();
-
-        return Ok(new CloseAccountResponse(account.CustomerId, account.Id, true));
+        return Ok(response);
     }
 }

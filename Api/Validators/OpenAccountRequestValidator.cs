@@ -1,5 +1,5 @@
-using Api.Request;
 using FluentValidation;
+using Api.Requests;
 
 namespace Api.Validators;
 
@@ -7,11 +7,13 @@ public class OpenAccountRequestValidator : AbstractValidator<OpenAccountRequest>
 {
     private const decimal DefaultMinInitialDepositAmount = 100;
 
-    public OpenAccountRequestValidator() {
+    public OpenAccountRequestValidator()
+    {
         Initialize(DefaultMinInitialDepositAmount);
     }
 
-    public OpenAccountRequestValidator(decimal minInitialDepositAmount) {
+    public OpenAccountRequestValidator(decimal minInitialDepositAmount)
+    {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(minInitialDepositAmount);
 
         Initialize(minInitialDepositAmount);

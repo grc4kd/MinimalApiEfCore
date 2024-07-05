@@ -1,18 +1,17 @@
 using System.Text.Json.Serialization;
-using Api;
-using Api.Data;
-using Api.Data.Seeding;
-using Api.Errors;
-using Api.Filters;
+using Infrastructure;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Domain.Accounts;
+using Infrastructure.Seeding;
+using Api;
+using Api.Filters;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<AccountDbContext>(options =>
-{
-    options.UseSqlite("DataSource=Accounts.db");
-});
+    options.UseSqlServer("name=ConnectionStrings:AccountsConnection",
+        b => b.MigrationsAssembly("Api")));
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
@@ -44,6 +43,7 @@ settings ??= new Settings
 builder.Services.AddSingleton(settings);
 builder.Services.AddScoped<CurrencyActionFilterService>();
 builder.Services.AddScoped<AccountActionFilterService>();
+builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -52,11 +52,6 @@ builder.Services.AddControllers()
         // to prevent cycles after fix-up of entity navigation properties
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     });
-
-// add custom error type to the builder pipeline
-builder.Services.AddProblemDetails(options =>
-    options.CustomizeProblemDetails = AccountErrorOptions.CustomizeProblemDetails
-);
 
 var app = builder.Build();
 
@@ -67,15 +62,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
-
 app.MapControllers();
 
 await using var scope = app.Services.CreateAsyncScope();
 await using var db = scope.ServiceProvider.GetRequiredService<AccountDbContext>();
-
-// migrate to the latest schema for the database context
-await db.Database.MigrateAsync();
 
 // seed the database if customers table is empty
 await AccountDbSeeder.SeedDatabaseAsync(db);
@@ -87,11 +77,35 @@ customer.MapGet("/", async (AccountDbContext db) =>
     var customers = await db.Customers
         .AsNoTracking()
         .Include(c => c.Accounts)
+        .Select(c => new { c.Id, c.Name })
         .ToListAsync();
     return TypedResults.Ok(customers);
 })
-.WithName("GetCustomer")
+.WithName("GetCustomers")
 .WithOpenApi();
+
+customer.MapGet("/{id}", async (AccountDbContext db, int id) =>
+{
+    var customer = await db.Customers
+        .AsNoTracking()
+        .Include(c => c.Accounts)
+        .Where(c => c.Id == id)
+        .Select(c => new {c.Id, c.Name,
+        Accounts = c.Accounts.Select(a => new {
+            a.Id,
+            AccountStatus = a.AccountStatus.AccountStatusType.ToString(),
+            AccountType = a.AccountType.ToString(),
+            a.Balance
+        })})
+        .FirstOrDefaultAsync();
+
+    if (customer != null)
+    {
+        return TypedResults.Ok(customer);
+    }
+
+    return Results.NotFound();
+});
 
 var account = app.MapGroup("/account");
 
@@ -114,7 +128,7 @@ account.MapGet("/{id}", async (AccountDbContext db, int id) =>
 
     if (account != null)
     {
-        return TypedResults.Created($"/account/{account.Id}", account);
+        return TypedResults.Ok(account);
     }
 
     return Results.NotFound();

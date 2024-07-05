@@ -1,8 +1,9 @@
-using Api.Request;
+using Domain.Accounts.Requests;
+using Api.Requests;
 
 namespace Test.TheoryData;
 
-public class CurrencyAmountRequestTheoryData : TheoryData<ICurrencyAmountRequest>
+public class CurrencyAmountRequestTheoryData : TheoryData<IAccountTransactionRequest>
 {
     public CurrencyAmountRequestTheoryData()
     {
