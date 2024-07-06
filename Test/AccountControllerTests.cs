@@ -5,79 +5,135 @@ using Api.Requests;
 using Api.Responses;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
+using System.Net;
 
 namespace Test;
 
 public class AccountControllerTests
 {
-    private readonly Mock<IAccountRepository> repositoryMock;
-
-    public AccountControllerTests()
-    {
-        repositoryMock = new Mock<IAccountRepository>();
-    }
-
     [Fact]
     public async Task CloseAccount_PreconditionsMet_CloseAccountResponse()
     {
-        var request = new CloseAccountRequest(1, 1);
-
+        int customerId = 1;
+        int accountId = 1;
+        var request = new CloseAccountRequest(customerId, accountId);
+        var repositoryMock = new Mock<IAccountRepository>();
         repositoryMock.Setup(r => r.CloseAsync(request))
-            .ReturnsAsync(new CloseAccountResponse(1, 1, true, AccountStatusType.CLOSED));
-
+            .ReturnsAsync(new CloseAccountResponse(customerId, accountId, true, AccountStatusType.OPEN));        
         var controller = new AccountController(repositoryMock.Object);
 
-        var response = await controller.Close(request);
+        var (result, response, httpStatusCode) = ConvertActionResultToObjects<OkObjectResult, CloseAccountResponse>(
+            await controller.Close(request));
 
         repositoryMock.Verify(r => r.CloseAsync(request));
-        Assert.IsType<OkObjectResult>(response);
+        Assert.Equal(HttpStatusCode.OK, httpStatusCode);
+        Assert.True(response.Succeeded);
+        Assert.Equal(customerId, response.CustomerId);
+        Assert.Equal(accountId, response.AccountId);
     }
 
     [Fact]
     public async Task Deposit_PreconditionsMet_DepositResponse()
     {
-        var request = new DepositRequest(1, 1, 1);
-
+        int customerId = 1;
+        int accountId = 1;
+        decimal amount = 1;
+        decimal expectedBalance = 101;
+        Type expectedActionResultType = typeof(CreatedAtActionResult);
+        Type expectedResponseType = typeof(DepositResponse);
+        var request = new DepositRequest(customerId, accountId, amount);
+        var repositoryMock = new Mock<IAccountRepository>();
         repositoryMock.Setup(r => r.DepositAsync(request))
-            .ReturnsAsync(new DepositResponse(1, 1, 101, true));
-
+            .ReturnsAsync(new DepositResponse(customerId, accountId, expectedBalance, true));
         var controller = new AccountController(repositoryMock.Object);
 
-        var response = await controller.Deposit(request);
+        var (result, response, httpStatusCode) = ConvertActionResultToObjects<CreatedAtActionResult, DepositResponse>(
+            await controller.Deposit(request)
+        );
 
         repositoryMock.Verify(r => r.DepositAsync(request));
-        Assert.IsType<CreatedAtActionResult>(response);
+        Assert.Equal(HttpStatusCode.Created, httpStatusCode);
+        Assert.True(response.Succeeded);
+        Assert.Equal(customerId, response.CustomerId);
+        Assert.Equal(accountId, response.AccountId);
+        Assert.Equal(expectedBalance, response.Balance);
     }
 
     [Fact]
     public async Task Withdrawal_PreconditionsMet_WithdrawalResponse()
     {
-        var request = new WithdrawalRequest(1, 1, 1);
-
+        int customerId = 1;
+        int accountId = 1;
+        decimal amount = 1;
+        decimal expectedBalance = 99;
+        var request = new WithdrawalRequest(customerId, accountId, amount);
+        var repositoryMock = new Mock<IAccountRepository>();
         repositoryMock.Setup(r => r.WithdrawalAsync(request))
-            .ReturnsAsync(new WithdrawalResponse(1, 1, 99, true));
-
+            .ReturnsAsync(new WithdrawalResponse(customerId, accountId, expectedBalance, true));
         var controller = new AccountController(repositoryMock.Object);
 
-        var response = await controller.Withdrawal(request);
-
+        var (result, response, httpStatusCode) = ConvertActionResultToObjects<CreatedAtActionResult, WithdrawalResponse>(
+            await controller.Withdrawal(request)
+        );
+        
         repositoryMock.Verify(r => r.WithdrawalAsync(request));
-        Assert.IsType<CreatedAtActionResult>(response);
+        Assert.Equal(HttpStatusCode.Created, httpStatusCode);
+        Assert.True(response.Succeeded);
+        Assert.Equal(customerId, response.CustomerId);
+        Assert.Equal(accountId, response.AccountId);
+        Assert.Equal(expectedBalance, response.Balance);
     }
 
     [Fact]
     public async Task OpenAccount_PreconditionsMet_OpenAccountResponse()
     {
-        var request = new OpenAccountRequest(1, AccountType.Savings, 100);
-
+        int customerId = 1;
+        int expectedAccountId = 1;
+        AccountType accountType = AccountType.Savings;
+        decimal amount = 100;
+        var request = new OpenAccountRequest(customerId, accountType, amount);
+        var repositoryMock = new Mock<IAccountRepository>();
         repositoryMock.Setup(r => r.OpenAsync(request))
-            .ReturnsAsync(new OpenAccountResponse(1, 1, true));
-        
+            .ReturnsAsync(new OpenAccountResponse(customerId, expectedAccountId, true));
         var controller = new AccountController(repositoryMock.Object);
 
-        var response = await controller.Open(request);
+        var (result, response, httpStatusCode) = ConvertActionResultToObjects<CreatedAtActionResult, OpenAccountResponse>(
+            await controller.Open(request)
+        );
 
         repositoryMock.Verify(r => r.OpenAsync(request));
-        Assert.IsType<CreatedAtActionResult>(response);
+        Assert.Equal(HttpStatusCode.Created, httpStatusCode);
+        Assert.True(response.Succeeded);
+        Assert.Equal(customerId, response.CustomerId);
+        Assert.Equal(expectedAccountId, response.AccountId);
+    }
+
+    private static (TResult, TResponse, HttpStatusCode) ConvertActionResultToObjects<TResult, TResponse>(IActionResult actionResult)
+    {
+        const string valuePropertyName = "Value";
+        const string statusCodePropertyName = "StatusCode";
+
+        TResult result = (TResult)actionResult;
+        var getValueMethod = typeof(TResult).GetProperty(valuePropertyName)?.GetMethod;
+        var resultValueObject = getValueMethod?.Invoke(result, null);
+        
+        if (resultValueObject == null)
+        {
+            Assert.Fail($"Couldn't get {valuePropertyName} of {typeof(TResult)} from {typeof(IActionResult)}.");
+        }
+
+        TResponse response = (TResponse)resultValueObject;
+        var getStatusCodeMethod = typeof(TResult).GetProperty("StatusCode")?.GetMethod;
+        var responseStatusCodeObject = getStatusCodeMethod?.Invoke(result, null);
+
+        if (responseStatusCodeObject == null)
+        {
+            Assert.Fail($"Couldn't get {statusCodePropertyName} from {typeof(TResult)}");
+        }
+
+        HttpStatusCode httpStatusCode = (HttpStatusCode)responseStatusCodeObject;
+        Assert.True(Enum.IsDefined(httpStatusCode));
+
+        return (result, response, httpStatusCode);
     }
 }
