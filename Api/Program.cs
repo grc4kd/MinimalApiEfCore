@@ -6,6 +6,7 @@ using Domain.Accounts;
 using Infrastructure.Seeding;
 using Api;
 using Api.Filters;
+using Domain.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -72,12 +73,21 @@ await AccountDbSeeder.SeedDatabaseAsync(db);
 
 var customer = app.MapGroup("/customer");
 
-customer.MapGet("/", async (AccountDbContext db) =>
+customer.MapGet("/", async (AccountDbContext db, int page = 0) =>
 {
     var customers = await db.Customers
         .AsNoTracking()
-        .Include(c => c.Accounts)
-        .Select(c => new { c.Id, c.Name })
+        .Select(c => new
+        {
+            CustomerId = c.Id,
+            c.Name
+        })
+        .OrderBy(c => c.Name)
+        .OrderBy(c => c.CustomerId)
+        .Skip(5 * page)
+        .Take(5)
+        .OrderBy(c => c.CustomerId)
+        .OrderBy(c => c.Name)
         .ToListAsync();
     return TypedResults.Ok(customers);
 })
@@ -86,34 +96,53 @@ customer.MapGet("/", async (AccountDbContext db) =>
 
 customer.MapGet("/{id}", async (AccountDbContext db, int id) =>
 {
-    var customer = await db.Customers
+    var customerAccounts = await db.Customers
         .AsNoTracking()
-        .Include(c => c.Accounts)
         .Where(c => c.Id == id)
-        .Select(c => new {c.Id, c.Name,
-        Accounts = c.Accounts.Select(a => new {
-            a.Id,
-            AccountStatus = a.AccountStatus.AccountStatusType.ToString(),
-            AccountType = a.AccountType.ToString(),
-            a.Balance
-        })})
-        .FirstOrDefaultAsync();
+        .Select(c => new
+        {
+            CustomerId = c.Id,
+            c.Name,
+            Accounts = c.Accounts.Select(a => new
+            {
+                AccountId = a.Id,
+                AccountStatus = a.AccountStatus.ToString(),
+                AccountType = a.AccountType.ToString(),
+                a.Balance
+            })
+        })
+        .OrderBy(c => c.CustomerId)
+        .ToListAsync();
 
-    if (customer != null)
+    if (customerAccounts.Count > 0)
     {
         return TypedResults.Ok(customer);
     }
 
     return Results.NotFound();
-});
+})
+.WithName("GetCustomer")
+.WithOpenApi();
 
 var account = app.MapGroup("/account");
 
-account.MapGet("/", async (AccountDbContext db) =>
+account.MapGet("/", async (AccountDbContext db, int page = 0) =>
 {
     var accounts = await db.Accounts
         .AsNoTracking()
-        .Include(a => a.Customer)
+        .Select(a => new
+        {
+            AccountId = a.Id,
+            a.CustomerId,
+            a.Customer.Name,
+            AccountStatus = a.AccountStatus.AccountStatusType.ToString(),
+            AccountType = a.AccountType.ToString(),
+            a.Balance
+        })
+        .OrderBy(a => a.AccountId)
+        .OrderBy(a => a.Name)
+        .Skip(page * 5)
+        .Take(5)
         .ToListAsync();
     return TypedResults.Ok(accounts);
 })
@@ -123,8 +152,19 @@ account.MapGet("/", async (AccountDbContext db) =>
 account.MapGet("/{id}", async (AccountDbContext db, int id) =>
 {
     var account = await db.Accounts
+        .AsNoTracking()
         .Include(a => a.Customer)
-        .SingleOrDefaultAsync(a => a.Id == id);
+        .Select(a => new
+        {
+            AccountId = a.Id,
+            a.CustomerId,
+            a.Customer.Name,
+            AccountStatus = a.AccountStatus.AccountStatusType.ToString(),
+            AccountType = a.AccountType.ToString(),
+            a.Balance
+        })
+        .OrderBy(a => a.AccountId)
+        .SingleOrDefaultAsync(a => a.AccountId == id);
 
     if (account != null)
     {
