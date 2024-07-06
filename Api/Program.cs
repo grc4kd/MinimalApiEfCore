@@ -98,6 +98,7 @@ customer.MapGet("/{id}", async (AccountDbContext db, int id) =>
 {
     var customerAccounts = await db.Customers
         .AsNoTracking()
+        .Include(c => c.Accounts)
         .Where(c => c.Id == id)
         .Select(c => new
         {
@@ -106,7 +107,7 @@ customer.MapGet("/{id}", async (AccountDbContext db, int id) =>
             Accounts = c.Accounts.Select(a => new
             {
                 AccountId = a.Id,
-                AccountStatus = a.AccountStatus.ToString(),
+                AccountStatus = a.AccountStatus.AccountStatusType.ToString(),
                 AccountType = a.AccountType.ToString(),
                 a.Balance
             })
@@ -116,7 +117,7 @@ customer.MapGet("/{id}", async (AccountDbContext db, int id) =>
 
     if (customerAccounts.Count > 0)
     {
-        return TypedResults.Ok(customer);
+        return TypedResults.Ok(customerAccounts);
     }
 
     return Results.NotFound();
