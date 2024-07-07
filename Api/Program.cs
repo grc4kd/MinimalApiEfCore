@@ -1,17 +1,24 @@
 using System.Text.Json.Serialization;
-using Infrastructure;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Domain.Accounts;
+using Infrastructure;
 using Infrastructure.Seeding;
 using Api;
 using Api.Filters;
-using Domain.Data;
+using Api.Responses;
+using Domain.Identity.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddAuthorization();
+builder.Services.AddIdentityApiEndpoints<AccountUser>()
+    .AddEntityFrameworkStores<AccountDbContext>();
+
+var connectionString = builder.Configuration.GetConnectionString("AccountsConnection") ?? throw new InvalidOperationException("Connection string 'AccountsConnection' not found.");
+
 builder.Services.AddDbContext<AccountDbContext>(options =>
-    options.UseSqlServer("name=ConnectionStrings:AccountsConnection",
+    options.UseSqlServer(connectionString,
         b => b.MigrationsAssembly("Api")));
 
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -36,13 +43,14 @@ Settings? settings = config.GetSection("Settings").Get<Settings>();
 // default settings when required section settings is not found
 settings ??= new Settings
 {
-    MinInitialDepositAmount = 100.00m,
-    MaxDepositAmount = 1_000_000.00m,
-    MaxWithdrawalAmount = 1_000_000.00m
+    MinInitialDepositAmount = 100,
+    MaxDepositAmount = 1_000_000,
+    CurrencyUnitScale = 2,
+    MaxWithdrawalAmount = 1_000_000
 };
 
 builder.Services.AddSingleton(settings);
-builder.Services.AddScoped<CurrencyActionFilterService>();
+builder.Services.AddScoped<AccountTransactionActionFilterService>();
 builder.Services.AddScoped<AccountActionFilterService>();
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 
@@ -55,6 +63,11 @@ builder.Services.AddControllers()
     });
 
 var app = builder.Build();
+
+app.MapIdentityApi<AccountUser>();
+
+// secure Swagger UI endpoints
+// app.MapSwagger().RequireAuthorization();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -75,24 +88,19 @@ var customer = app.MapGroup("/customer");
 
 customer.MapGet("/", async (AccountDbContext db, int page = 0) =>
 {
-    var customers = await db.Customers
-        .AsNoTracking()
-        .Select(c => new
-        {
-            CustomerId = c.Id,
-            c.Name
-        })
+    var customers = await db.Customers.AsNoTracking()
         .OrderBy(c => c.Name)
-        .OrderBy(c => c.CustomerId)
+        .OrderBy(c => c.Id)
         .Skip(5 * page)
         .Take(5)
-        .OrderBy(c => c.CustomerId)
-        .OrderBy(c => c.Name)
+        .Select(c => new GetCustomerResponse(c.Id, c.Name))
         .ToListAsync();
+
     return TypedResults.Ok(customers);
 })
 .WithName("GetCustomers")
-.WithOpenApi();
+.WithOpenApi()
+.RequireAuthorization();
 
 customer.MapGet("/{id}", async (AccountDbContext db, int id) =>
 {
@@ -100,19 +108,8 @@ customer.MapGet("/{id}", async (AccountDbContext db, int id) =>
         .AsNoTracking()
         .Include(c => c.Accounts)
         .Where(c => c.Id == id)
-        .Select(c => new
-        {
-            CustomerId = c.Id,
-            c.Name,
-            Accounts = c.Accounts.Select(a => new
-            {
-                AccountId = a.Id,
-                AccountStatus = a.AccountStatus.AccountStatusType.ToString(),
-                AccountType = a.AccountType.ToString(),
-                a.Balance
-            })
-        })
-        .OrderBy(c => c.CustomerId)
+        .OrderBy(c => c.Id)
+        .Select(c => new GetCustomerResponse(c.Id, c.Name, c.Accounts))
         .ToListAsync();
 
     if (customerAccounts.Count > 0)
@@ -123,7 +120,8 @@ customer.MapGet("/{id}", async (AccountDbContext db, int id) =>
     return Results.NotFound();
 })
 .WithName("GetCustomer")
-.WithOpenApi();
+.WithOpenApi()
+.RequireAuthorization();
 
 var account = app.MapGroup("/account");
 
@@ -131,51 +129,52 @@ account.MapGet("/", async (AccountDbContext db, int page = 0) =>
 {
     var accounts = await db.Accounts
         .AsNoTracking()
-        .Select(a => new
-        {
-            AccountId = a.Id,
-            a.CustomerId,
-            a.Customer.Name,
-            AccountStatus = a.AccountStatus.AccountStatusType.ToString(),
-            AccountType = a.AccountType.ToString(),
-            a.Balance
-        })
-        .OrderBy(a => a.AccountId)
-        .OrderBy(a => a.Name)
+        .OrderBy(a => a.Id)
+        .OrderBy(a => a.Customer.Name)
         .Skip(page * 5)
         .Take(5)
+        .Select(a => new GetAccountResponse(
+            a.Id,
+            a.CustomerId,
+            a.Customer.Name,
+            a.AccountStatus,
+            a.AccountType,
+            a.Balance
+            ))
         .ToListAsync();
     return TypedResults.Ok(accounts);
 })
 .WithName("GetAccounts")
-.WithOpenApi();
+.WithOpenApi()
+.RequireAuthorization();
 
 account.MapGet("/{id}", async (AccountDbContext db, int id) =>
 {
     var account = await db.Accounts
         .AsNoTracking()
         .Include(a => a.Customer)
-        .Select(a => new
-        {
-            AccountId = a.Id,
-            a.CustomerId,
-            a.Customer.Name,
-            AccountStatus = a.AccountStatus.AccountStatusType.ToString(),
-            AccountType = a.AccountType.ToString(),
-            a.Balance
-        })
-        .OrderBy(a => a.AccountId)
-        .SingleOrDefaultAsync(a => a.AccountId == id);
+        .OrderBy(a => a.Id)
+        .Where(a => a.Id == id)
+        .SingleOrDefaultAsync();
 
     if (account != null)
     {
-        return TypedResults.Ok(account);
+        return TypedResults.Ok(new GetAccountResponse
+        (
+            account.Id,
+            account.CustomerId,
+            account.Customer.Name,
+            account.AccountStatus,
+            account.AccountType,
+            account.Balance
+        ));
     }
 
     return Results.NotFound();
 })
 .WithName("GetAccount")
-.WithOpenApi();
+.WithOpenApi()
+.RequireAuthorization();
 
 app.Run();
 

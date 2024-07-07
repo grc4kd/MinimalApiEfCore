@@ -1,4 +1,4 @@
-using Domain.Data;
+using Domain.Accounts.Data;
 
 namespace Domain.Accounts.Requests;
 

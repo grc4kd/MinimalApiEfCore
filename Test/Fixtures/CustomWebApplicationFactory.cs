@@ -3,6 +3,8 @@ using Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Test.Helpers;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.AspNetCore.Authentication;
 
 namespace Test.Fixtures;
 
@@ -44,6 +46,13 @@ public class CustomWebApplicationFactory<TProgram>
 
             services.AddDbContext<AccountDbContext>((container, options) =>
                 options.UseSqlServer(ConnectionString));
+        });
+
+        builder.ConfigureTestServices(services =>
+        {
+            services.AddAuthentication(defaultScheme: "TestScheme")
+                .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(
+                    "TestScheme", options => { });      
         });
 
         builder.UseEnvironment("Development");

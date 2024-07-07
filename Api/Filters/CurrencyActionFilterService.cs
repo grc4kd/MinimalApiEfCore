@@ -1,15 +1,13 @@
+using Api.Validators;
 using Domain.Accounts.Requests;
 using Microsoft.AspNetCore.Mvc.Filters;
 
-using Adapter = Api.Validators.FluentValidationResultModelStateAdapter;
-using Api.Validators;
-
 namespace Api.Filters;
 
-public class CurrencyActionFilterService(Settings settings) : IAsyncActionFilter
+public class AccountTransactionActionFilterService(Settings settings) : IAsyncActionFilter
 {
-    private readonly AccountTransactionRequestValidator currencyAmountRequestValidator =
-        new(settings.MaxDepositAmount, settings.MaxWithdrawalAmount);
+    private readonly AccountTransactionRequestValidator transactionRequestValidator =
+        new(settings.MaxDepositAmount, settings.MaxWithdrawalAmount, settings.CurrencyUnitScale);
 
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
@@ -17,11 +15,11 @@ public class CurrencyActionFilterService(Settings settings) : IAsyncActionFilter
         {
             if (request is IAccountTransactionRequest accountTransactionRequest)
             {
-                var validationResult = await currencyAmountRequestValidator.ValidateAsync(accountTransactionRequest);
+                var validationResult = await transactionRequestValidator.ValidateAsync(accountTransactionRequest);
 
                 if (!validationResult.IsValid)
                 {
-                    Adapter.ValidationResultToModelStateAsync(context, validationResult);
+                    FluentValidationResultModelStateAdapter.ValidationResultToModelStateAsync(context, validationResult);
                     return;
                 }
             }

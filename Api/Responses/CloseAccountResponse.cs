@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using Domain.Accounts.Data;
 using Domain.Accounts.Responses;
-using Domain.Data;
 
 namespace Api.Responses;
 

@@ -1,5 +1,5 @@
-using Domain.Data;
 using Api.Responses;
+using Domain.Accounts.Data;
 
 namespace Test;
 

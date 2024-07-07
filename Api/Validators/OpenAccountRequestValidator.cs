@@ -12,15 +12,15 @@ public class OpenAccountRequestValidator : AbstractValidator<OpenAccountRequest>
         Initialize(DefaultMinInitialDepositAmount);
     }
 
-    public OpenAccountRequestValidator(decimal minInitialDepositAmount)
+    public OpenAccountRequestValidator(decimal MinInitialDepositAmount)
     {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(minInitialDepositAmount);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MinInitialDepositAmount);
 
-        Initialize(minInitialDepositAmount);
+        Initialize(MinInitialDepositAmount);
     }
 
-    private void Initialize(decimal minInitialDepositAmount)
+    private void Initialize(decimal MinInitialDepositAmount)
     {
-        RuleFor(o => o.InitialDeposit).GreaterThanOrEqualTo(minInitialDepositAmount);
+        RuleFor(o => o.InitialDeposit).GreaterThanOrEqualTo(MinInitialDepositAmount);
     }
 }

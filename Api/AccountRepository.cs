@@ -1,10 +1,10 @@
 using Domain.Accounts;
 using Domain.Accounts.Responses;
 using Domain.Accounts.Requests;
-using Domain.Data;
 using Infrastructure;
 using Api.Responses;
 using Microsoft.EntityFrameworkCore;
+using Domain.Accounts.Data;
 
 namespace Api;
 

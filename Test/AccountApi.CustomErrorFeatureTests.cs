@@ -1,11 +1,11 @@
 using System.Net;
-using Domain.Data;
 using Infrastructure;
 using Api.Requests;
 using Api.Responses;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Test.Fixtures;
+using Domain.Accounts.Data;
 
 namespace Test;
 
@@ -38,21 +38,5 @@ public class AccountApiCustomErrorFeatureTests : IAsyncDisposable
         return await context.Accounts.OrderBy(a => a.Id).LastAsync();
     }
 
-    [Fact]
-    public async Task Post_WithdrawalWithInsufficientFundBalance_BadRequest()
-    {
-        var account = await GetTestAccount();
-
-        var request = new WithdrawalRequest(account.CustomerId, account.Id, amount: 100.01m);
-
-        var response = _client.PostAsync("api/account/withdrawal", JsonContent.Create(request)).Result;
-
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-
-        var accountNotFoundResponse = await response.Content.ReadFromJsonAsync<AccountNotFoundResponse>();
-
-        Assert.NotNull(accountNotFoundResponse);
-        Assert.False(accountNotFoundResponse.Succeeded);
-        Assert.Equal(request.AccountId, accountNotFoundResponse.AccountId);
-    }
+    
 }

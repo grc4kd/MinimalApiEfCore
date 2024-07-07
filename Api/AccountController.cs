@@ -3,12 +3,14 @@ using Microsoft.AspNetCore.Mvc;
 using Api.Responses;
 using Api.Filters;
 using Api.Requests;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Api;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
-[ServiceFilter<CurrencyActionFilterService>]
+[ServiceFilter<AccountTransactionActionFilterService>]
 [ServiceFilter<AccountActionFilterService>]
 public class AccountController(IAccountRepository repository) : ControllerBase
 {

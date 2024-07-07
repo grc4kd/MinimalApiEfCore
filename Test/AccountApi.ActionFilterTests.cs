@@ -1,8 +1,12 @@
 using System.Net;
-using Domain.Data;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Test.Fixtures;
 using Api.Requests;
+using Domain.Accounts.Data;
+using Api.Responses;
+using Test.Helpers;
+using Infrastructure;
+using Microsoft.EntityFrameworkCore;
 
 namespace Test;
 
@@ -98,5 +102,26 @@ public class AccountApiActionFilterTests : IAsyncDisposable
 
         Assert.NotNull(modelStateDictionary);
         Assert.Contains(modelStateDictionary, f => f.Key == nameof(WithdrawalRequest.Amount));
+    }
+
+    [Fact]
+    public async Task Post_WithdrawalWithInsufficientFundBalance_BadRequest()
+    {
+        var scope = _webApplicationFactory.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<AccountDbContext>();
+        await DataUtilities.ReinitializeDbForTestsAsync(context);
+
+        var account = await context.Accounts.FirstAsync();
+
+        var request = new WithdrawalRequest(customerId: account.CustomerId, accountId: account.Id, amount: 100.01m);
+        var response = await _client.PostAsync("api/account/withdrawal", JsonContent.Create(request));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var insufficientFundsResponse = await response.Content.ReadFromJsonAsync<InsufficientFundsResponse>();
+
+        Assert.NotNull(insufficientFundsResponse);
+        Assert.False(insufficientFundsResponse.Succeeded);
+        Assert.Equal(request.AccountId, insufficientFundsResponse.AccountId);
     }
 }

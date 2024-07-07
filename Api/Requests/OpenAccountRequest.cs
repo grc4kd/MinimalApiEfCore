@@ -1,5 +1,5 @@
+using Domain.Accounts.Data;
 using Domain.Accounts.Requests;
-using Domain.Data;
 
 namespace Api.Requests;
 

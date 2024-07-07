@@ -1,4 +1,4 @@
-namespace Domain.Data;
+namespace Domain.Accounts.Data;
 
 public class Account
 {

@@ -1,6 +1,6 @@
-using Domain.Data;
 using Api.Requests;
 using Test.TheoryData;
+using Domain.Accounts.Data;
 
 namespace Test;
 

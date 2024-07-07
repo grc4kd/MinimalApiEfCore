@@ -1,11 +1,11 @@
 using Domain.Accounts;
-using Domain.Data;
 using Api;
 using Api.Requests;
 using Api.Responses;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using System.Net;
+using Domain.Accounts.Data;
 
 namespace Test;
 

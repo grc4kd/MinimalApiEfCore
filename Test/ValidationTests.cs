@@ -1,4 +1,3 @@
-using Domain.Data;
 using Domain.Accounts.Requests;
 using Api;
 using Api.Requests;
@@ -6,6 +5,7 @@ using Api.Validators;
 using Api.Filters;
 using FluentValidation.TestHelper;
 using Test.TheoryData;
+using Domain.Accounts.Data;
 
 namespace Test;
 
@@ -44,25 +44,57 @@ public class ValidationTests
     [Fact]
     public void AccountActionFilterService_MinDepositAmount_TestConfigException()
     {
-        Settings settings = new() { MaxDepositAmount = 1_000_000, MaxWithdrawalAmount = 1_000_000, MinInitialDepositAmount = 0 };
-
-        Assert.Throws<ArgumentOutOfRangeException>("minInitialDepositAmount", () => new AccountActionFilterService(settings));
+        decimal invalidSetting = 0;
+        
+        Assert.Throws<ArgumentOutOfRangeException>(nameof(Settings.MinInitialDepositAmount), ()
+            => new AccountActionFilterService(new Settings {
+                MaxDepositAmount = 1,
+                MaxWithdrawalAmount = 1,
+                CurrencyUnitScale = 0,
+                MinInitialDepositAmount = invalidSetting
+            }));
     }
 
     [Fact]
     public void CurrencyActionFilterService_MaxDepositAmount_TestConfigException()
     {
-        Settings settings = new() { MaxDepositAmount = 0, MaxWithdrawalAmount = 1_000_000, MinInitialDepositAmount = 1_000_000 };
-
-        Assert.Throws<ArgumentOutOfRangeException>("maxDepositAmount", () => new CurrencyActionFilterService(settings));
+        decimal invalidSetting = 0;
+        
+        Assert.Throws<ArgumentOutOfRangeException>(nameof(Settings.MaxDepositAmount), ()
+            => new AccountTransactionActionFilterService(new Settings {
+                MaxDepositAmount = invalidSetting,
+                MaxWithdrawalAmount = 1,
+                CurrencyUnitScale = 0,
+                MinInitialDepositAmount = 1
+            }));
     }
 
     [Fact]
     public void CurrencyActionFilterService_MaxWithdrawalAmount_TestConfigException()
     {
-        Settings settings = new() { MaxDepositAmount = 1_000_000, MaxWithdrawalAmount = 0, MinInitialDepositAmount = 1_000_000 };
+        decimal invalidSetting = 0;
+        
+        Assert.Throws<ArgumentOutOfRangeException>(nameof(Settings.MaxWithdrawalAmount), ()
+            => new AccountTransactionActionFilterService(new Settings {
+                MaxDepositAmount = 1,
+                MaxWithdrawalAmount = invalidSetting,
+                CurrencyUnitScale = 0,
+                MinInitialDepositAmount = 1
+            }));
+    }
 
-        Assert.Throws<ArgumentOutOfRangeException>("maxWithdrawalAmount", () => new CurrencyActionFilterService(settings));
+    [Fact]
+    public void CurrencyActionFilterService_CurrencyUnitScale_TestConfigException()
+    {
+        int invalidSetting = -2;
+        
+        Assert.Throws<ArgumentOutOfRangeException>(nameof(Settings.CurrencyUnitScale), ()
+            => new AccountTransactionActionFilterService(new Settings {
+                MaxDepositAmount = 1,
+                MaxWithdrawalAmount = 1,
+                CurrencyUnitScale = invalidSetting,
+                MinInitialDepositAmount = 1
+            }));
     }
 
     [Fact]

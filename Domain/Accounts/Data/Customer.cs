@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Identity;
 
-namespace Domain.Data;
+namespace Domain.Accounts.Data;
 
 public class Customer
 {
@@ -8,6 +9,7 @@ public class Customer
 
     [DataType(DataType.Text)]
     [StringLength(100, ErrorMessage = "There's a 100 character limit on customer name. Please shorten the name.")]
+    [PersonalData]
     public required string Name { get; set; }
 
     public ICollection<Account> Accounts { get; } = [];

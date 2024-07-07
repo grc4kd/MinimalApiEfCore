@@ -1,20 +1,26 @@
-using Domain.Data;
+using Domain.Accounts.Data;
+using Domain.Identity.Data;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure;
 
-public class AccountDbContext(DbContextOptions<AccountDbContext> options) : DbContext(options)
+public class AccountDbContext(DbContextOptions<AccountDbContext> options) : IdentityDbContext<AccountUser>(options)
 {
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    protected override void OnModelCreating(ModelBuilder builder)
     {
-        modelBuilder.Entity<Account>()
+        base.OnModelCreating(builder);
+
+        builder.Entity<Account>()
             .Property(t => t.Balance)
             .HasColumnType("decimal")
             .HasPrecision(18, 2);
-        
-        modelBuilder.Entity<Account>().OwnsOne(p => p.AccountStatus);
+
+        builder.Entity<Account>()
+            .OwnsOne(p => p.AccountStatus);
     }
 
     public DbSet<Account> Accounts { get; set; }
     public DbSet<Customer> Customers { get; set; }
+    public DbSet<AccountUser> AccountUsers { get; set; }
 }

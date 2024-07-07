@@ -1,11 +1,11 @@
 using System.Net;
-using Domain.Data;
 using Infrastructure;
 using Api.Requests;
 using Api.Responses;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Test.Fixtures;
+using Domain.Accounts.Data;
 
 namespace Test;
 
