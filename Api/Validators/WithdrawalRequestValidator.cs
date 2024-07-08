@@ -5,8 +5,9 @@ namespace Api.Validators;
 
 public class WithdrawalRequestValidator : AbstractValidator<WithdrawalRequest>
 {
-    public WithdrawalRequestValidator()
+    public WithdrawalRequestValidator(Settings settings)
     {
-        RuleFor(w => w.Amount).GreaterThanOrEqualTo(0.01m);
+        decimal minimumWithdrawalAmount = 1m * (decimal)Math.Pow(0.1, settings.CurrencyUnitScale);
+        RuleFor(w => w.Amount).GreaterThanOrEqualTo(minimumWithdrawalAmount);
     }
 }

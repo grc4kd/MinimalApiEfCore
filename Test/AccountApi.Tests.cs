@@ -31,7 +31,7 @@ public class AccountApiTests : IAsyncDisposable
         await _webApplicationFactory.CleanupAsync();
     }
 
-    private async Task<Account> GetTestAccount()
+    private async Task<Account> GetTestAccountAsync()
     {
         using var scope = _webApplicationFactory.Services.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<AccountDbContext>();
@@ -41,7 +41,7 @@ public class AccountApiTests : IAsyncDisposable
     [Fact]
     public async Task Post_OpenAccount_Created()
     {
-        var account = await GetTestAccount();
+        var account = await GetTestAccountAsync();
 
         var request = new OpenAccountRequest(account.CustomerId, AccountType.Savings, initialDeposit: 100);
 
@@ -141,7 +141,7 @@ public class AccountApiTests : IAsyncDisposable
     [Fact]
     public async Task Put_CloseAccountWithZeroBalance_OK()
     {
-        var account = await GetTestAccount();
+        var account = await GetTestAccountAsync();
 
         using var scope = _webApplicationFactory.Services.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<AccountDbContext>();
@@ -219,13 +219,31 @@ public class AccountApiTests : IAsyncDisposable
         var request = new OpenAccountRequest(customer.Id, AccountType.Checking, 100m);
 
         var response = await _client.PostAsync("api/account/open", JsonContent.Create(request));
+        var savingsAccountDoesNotExistResponse = await response.Content.ReadFromJsonAsync<SavingsAccountDoesNotExistResponse>();
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        
-        var savingsAccountDoesNotExistResponse = await response.Content.ReadFromJsonAsync<SavingsAccountDoesNotExistResponse>();
         Assert.NotNull(savingsAccountDoesNotExistResponse);
         Assert.False(savingsAccountDoesNotExistResponse.Succeeded);
         Assert.Equal(request.CustomerId, savingsAccountDoesNotExistResponse.CustomerId);
+    }
+
+    [Fact]
+    public async Task Post_OpenAccountWithoutMinimumDeposit_BadRequest()
+    {
+        var account = await GetTestAccountAsync();
+
+        var request = new OpenAccountRequest(account.CustomerId, accountType: AccountType.Savings, initialDeposit: 20);
+        var response = await _client.PostAsync("api/account/open", JsonContent.Create(request));
+        var openAccountValidationResponse = await response.Content.ReadFromJsonAsync<OpenAccountValidationResponse>();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.NotNull(openAccountValidationResponse);
+        Assert.False(openAccountValidationResponse.Succeeded);
+        Assert.Equal(request.CustomerId, openAccountValidationResponse.CustomerId);
+        Assert.False(openAccountValidationResponse.ValidationResult.IsValid);
+        Assert.Single(openAccountValidationResponse.ValidationResult.Errors);
+        Assert.Equal("GreaterThanOrEqualValidator", openAccountValidationResponse.ValidationResult.Errors.Single().ErrorCode);
+        Assert.Equal(nameof(OpenAccountRequest.InitialDeposit), openAccountValidationResponse.ValidationResult.Errors.Single().PropertyName);
     }
 
     [Fact]

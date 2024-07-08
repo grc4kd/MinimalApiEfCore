@@ -6,7 +6,7 @@ namespace Domain.Accounts;
 public interface IAccountRepository
 {
     Task<IOpenAccountResponse> OpenAsync(IOpenAccountRequest request);
-    Task<IDepositResponse> DepositAsync(IAccountTransactionRequest request);
-    Task<IWithdrawalResponse> WithdrawalAsync(IAccountTransactionRequest request);
+    Task<IAccountTransactionResponse> DepositAsync(IAccountTransactionRequest request);
+    Task<IAccountTransactionResponse> WithdrawalAsync(IAccountTransactionRequest request);
     Task<ICloseAccountResponse> CloseAsync(ICloseAccountRequest request);
 }

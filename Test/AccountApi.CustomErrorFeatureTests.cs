@@ -1,7 +1,4 @@
-using System.Net;
 using Infrastructure;
-using Api.Requests;
-using Api.Responses;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Test.Fixtures;

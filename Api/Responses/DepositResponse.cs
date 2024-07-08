@@ -2,7 +2,7 @@ using Domain.Accounts.Responses;
 
 namespace Api.Responses;
 
-public class DepositResponse(int customerId, int accountId, decimal balance, bool succeeded) : IDepositResponse
+public class DepositResponse(int customerId, int accountId, decimal balance, bool succeeded) : IAccountTransactionResponse
 {
     public int CustomerId { get; set; } = customerId;
     public int AccountId { get; set; } = accountId;

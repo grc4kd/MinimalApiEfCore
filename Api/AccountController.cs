@@ -1,7 +1,6 @@
 using Domain.Accounts;
 using Microsoft.AspNetCore.Mvc;
 using Api.Responses;
-using Api.Filters;
 using Api.Requests;
 using Microsoft.AspNetCore.Authorization;
 
@@ -10,8 +9,6 @@ namespace Api;
 [ApiController]
 [Authorize]
 [Route("api/[controller]")]
-[ServiceFilter<AccountTransactionActionFilterService>]
-[ServiceFilter<AccountActionFilterService>]
 public class AccountController(IAccountRepository repository) : ControllerBase
 {
     private readonly IAccountRepository _repository = repository;
@@ -24,13 +21,12 @@ public class AccountController(IAccountRepository repository) : ControllerBase
     {
         var response = await _repository.OpenAsync(request);
 
-        if (response is CustomerNotFoundResponse)
-        {
-            return NotFound(response);
-        }
-
         if (!response.Succeeded)
         {
+            if (response is CustomerNotFoundResponse)
+            {
+                return NotFound(response);
+            }
 
             return BadRequest(response);
         }
@@ -51,17 +47,17 @@ public class AccountController(IAccountRepository repository) : ControllerBase
     {
         var response = await _repository.DepositAsync(request);
 
-        if (response is AccountNotFoundResponse)
-        {
-            return NotFound(response);
-        }
-
         if (!response.Succeeded)
         {
+            if (response is AccountNotFoundResponse)
+            {
+                return NotFound(response);
+            }
+
             return BadRequest(response);
         }
 
-        return CreatedAtAction(nameof(Deposit), new { id = response.AccountId }, response);
+        return CreatedAtAction(nameof(Deposit), new { id = request.AccountId }, response);
     }
 
     [HttpPost("withdrawal")]
@@ -72,18 +68,17 @@ public class AccountController(IAccountRepository repository) : ControllerBase
     {
         var response = await _repository.WithdrawalAsync(request);
 
-        if (response is AccountNotFoundResponse)
-        {
-            return NotFound(response);
-        }
-
         if (!response.Succeeded)
         {
+            if (response is AccountNotFoundResponse)
+            {
+                return NotFound(response);
+            }
 
             return BadRequest(response);
         }
 
-        return CreatedAtAction(nameof(Withdrawal), new { id = response.AccountId }, response);
+        return CreatedAtAction(nameof(Withdrawal), new { id = request.AccountId }, response);
     }
 
     [HttpPut("close")]

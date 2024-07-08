@@ -1,22 +1,21 @@
 using System.Net;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Test.Fixtures;
-using Api.Requests;
-using Domain.Accounts.Data;
-using Api.Responses;
-using Test.Helpers;
 using Infrastructure;
+using Api.Requests;
+using Api.Responses;
+using Test.Fixtures;
+using Test.Helpers;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 
 namespace Test;
 
 [Collection("CustomWebApplicationFactoryTests")]
-public class AccountApiActionFilterTests : IAsyncDisposable
+public class AccountApiValidatorTests : IAsyncDisposable
 {
     private readonly HttpClient _client;
     private readonly CustomWebApplicationFactory<Program> _webApplicationFactory;
 
-    public AccountApiActionFilterTests(CustomWebApplicationFactory<Program> webApplicationFactory)
+    public AccountApiValidatorTests(CustomWebApplicationFactory<Program> webApplicationFactory)
     {
         _webApplicationFactory = webApplicationFactory;
         _client = webApplicationFactory.CreateClient(new WebApplicationFactoryClientOptions
@@ -68,15 +67,6 @@ public class AccountApiActionFilterTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task Post_OpenAccountWithoutMinimumDeposit_BadRequest()
-    {
-        var request = new OpenAccountRequest(customerId: 1, accountType: AccountType.Savings, 20);
-        var response = await _client.PostAsync("api/account/open", JsonContent.Create(request));
-
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-    }
-
-    [Fact]
     public async void Post_DepositWithNegativeAmount_BadRequest()
     {
         var request = new DepositRequest(customerId: 1, accountId: 1, amount: -100);
@@ -84,10 +74,14 @@ public class AccountApiActionFilterTests : IAsyncDisposable
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        var modelStateDictionary = await response.Content.ReadFromJsonAsync<IReadOnlyDictionary<string, string[]>>();
+        var validationResponse = await response.Content.ReadFromJsonAsync<AccountTransactionValidationResponse>();
 
-        Assert.NotNull(modelStateDictionary);
-        Assert.Contains(modelStateDictionary, f => f.Key == nameof(DepositRequest.Amount));
+        Assert.NotNull(validationResponse);
+        Assert.False(validationResponse.Succeeded);
+        Assert.False(validationResponse.ValidationResult.IsValid);
+        Assert.Single(validationResponse.ValidationResult.Errors);
+        Assert.Contains(validationResponse.ValidationResult.Errors.Single().ErrorCode, "GreaterThanValidator");
+        Assert.Equal("Amount", validationResponse.ValidationResult.Errors.Single().PropertyName);
     }
 
     [Fact]
@@ -98,10 +92,14 @@ public class AccountApiActionFilterTests : IAsyncDisposable
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        var modelStateDictionary = await response.Content.ReadFromJsonAsync<IReadOnlyDictionary<string, string[]>>();
+        var validationResponse = await response.Content.ReadFromJsonAsync<AccountTransactionValidationResponse>();
 
-        Assert.NotNull(modelStateDictionary);
-        Assert.Contains(modelStateDictionary, f => f.Key == nameof(WithdrawalRequest.Amount));
+        Assert.NotNull(validationResponse);
+        Assert.False(validationResponse.Succeeded);
+        Assert.False(validationResponse.ValidationResult.IsValid);
+        Assert.Single(validationResponse.ValidationResult.Errors);
+        Assert.Contains(validationResponse.ValidationResult.Errors.Single().ErrorCode, "GreaterThanValidator");
+        Assert.Equal("Amount", validationResponse.ValidationResult.Errors.Single().PropertyName);
     }
 
     [Fact]

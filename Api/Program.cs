@@ -2,12 +2,12 @@ using System.Text.Json.Serialization;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Domain.Accounts;
+using Domain.Identity.Data;
 using Infrastructure;
 using Infrastructure.Seeding;
 using Api;
-using Api.Filters;
 using Api.Responses;
-using Domain.Identity.Data;
+using Api.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,8 +50,8 @@ settings ??= new Settings
 };
 
 builder.Services.AddSingleton(settings);
-builder.Services.AddScoped<AccountTransactionActionFilterService>();
-builder.Services.AddScoped<AccountActionFilterService>();
+builder.Services.AddValidatorsFromAssemblyContaining<AccountTransactionRequestValidator>();
+
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 
 builder.Services.AddControllers()

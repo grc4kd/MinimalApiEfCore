@@ -2,15 +2,21 @@ using Domain.Accounts.Requests;
 using Api;
 using Api.Requests;
 using Api.Validators;
-using Api.Filters;
 using FluentValidation.TestHelper;
 using Test.TheoryData;
-using Domain.Accounts.Data;
 
 namespace Test;
 
 public class ValidationTests
 {
+    readonly Settings safeSettings = new()
+    {
+        MaxDepositAmount = 1_000_000,
+        MaxWithdrawalAmount = 1_000_000,
+        MinInitialDepositAmount = 0.01m,
+        CurrencyUnitScale = 2
+    };
+
     [InlineData(1, 1, -1)]
     [InlineData(1, 1, 0)]
     [Theory]
@@ -19,7 +25,7 @@ public class ValidationTests
         )
     {
         var request = new WithdrawalRequest(customerId, accountId, amount);
-        var validator = new WithdrawalRequestValidator();
+        var validator = new WithdrawalRequestValidator(safeSettings);
 
         var result = await validator.TestValidateAsync(request);
 
@@ -28,83 +34,58 @@ public class ValidationTests
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2211:Non-constant fields should not be visible",
         Justification = "xUnit uses public static member fields to pass member data into [Theory] test methods by design")]
-    public static CurrencyAmountRequestTheoryData CurrencyAmountRequestData = [];
+    public static AccountTransactionRequestTheoryData CurrencyAmountRequestData = [];
 
     [Theory]
     [MemberData(nameof(CurrencyAmountRequestData))]
     public async Task ValidateRequest_IAccountTransactionRequest_TestValidate(IAccountTransactionRequest request)
     {
-        var validator = new AccountTransactionRequestValidator();
+        var validator = new AccountTransactionRequestValidator(safeSettings);
 
         var result = await validator.TestValidateAsync(request);
 
         result.ShouldHaveValidationErrorFor(request => request.Amount);
     }
 
-    [Fact]
-    public void AccountActionFilterService_MinDepositAmount_TestConfigException()
+    [InlineData(0, 1, 0, 1, nameof(Settings.MaxDepositAmount))]
+    [InlineData(1, 0, 0, 1, nameof(Settings.MaxWithdrawalAmount))]
+    [InlineData(1, 1, -1, 1, nameof(Settings.CurrencyUnitScale))]
+    [InlineData(1, 1, 0, 0, nameof(Settings.MinInitialDepositAmount))]
+    [Theory]
+    public void Settings_ValidateArguments_CheckExceptions(
+        decimal maxDepositAmount, decimal maxWithdrawalAmount, int currencyUnitScale, decimal minInitialDepositAmount,
+        string paramName)
     {
-        decimal invalidSetting = 0;
-        
-        Assert.Throws<ArgumentOutOfRangeException>(nameof(Settings.MinInitialDepositAmount), ()
-            => new AccountActionFilterService(new Settings {
-                MaxDepositAmount = 1,
-                MaxWithdrawalAmount = 1,
-                CurrencyUnitScale = 0,
-                MinInitialDepositAmount = invalidSetting
-            }));
+        Assert.Throws<ArgumentOutOfRangeException>(paramName, ()
+            => new Settings
+            {
+                MaxDepositAmount = maxDepositAmount,
+                MaxWithdrawalAmount = maxWithdrawalAmount,
+                CurrencyUnitScale = currencyUnitScale,
+                MinInitialDepositAmount = minInitialDepositAmount
+            });
     }
 
     [Fact]
-    public void CurrencyActionFilterService_MaxDepositAmount_TestConfigException()
+    public async Task Settings_ValidateArguments_CheckStrangeButValidParameters()
     {
-        decimal invalidSetting = 0;
-        
-        Assert.Throws<ArgumentOutOfRangeException>(nameof(Settings.MaxDepositAmount), ()
-            => new AccountTransactionActionFilterService(new Settings {
-                MaxDepositAmount = invalidSetting,
-                MaxWithdrawalAmount = 1,
-                CurrencyUnitScale = 0,
-                MinInitialDepositAmount = 1
-            }));
-    }
+        var strangeSettings = new Settings 
+        {
+            MaxDepositAmount = safeSettings.MaxDepositAmount,
+            MaxWithdrawalAmount = 1_000_000.23m,
+            CurrencyUnitScale = safeSettings.CurrencyUnitScale,
+            MinInitialDepositAmount = safeSettings.MinInitialDepositAmount
+        };
 
-    [Fact]
-    public void CurrencyActionFilterService_MaxWithdrawalAmount_TestConfigException()
-    {
-        decimal invalidSetting = 0;
-        
-        Assert.Throws<ArgumentOutOfRangeException>(nameof(Settings.MaxWithdrawalAmount), ()
-            => new AccountTransactionActionFilterService(new Settings {
-                MaxDepositAmount = 1,
-                MaxWithdrawalAmount = invalidSetting,
-                CurrencyUnitScale = 0,
-                MinInitialDepositAmount = 1
-            }));
-    }
+        var validator = new AccountTransactionRequestValidator(strangeSettings);
 
-    [Fact]
-    public void CurrencyActionFilterService_CurrencyUnitScale_TestConfigException()
-    {
-        int invalidSetting = -2;
-        
-        Assert.Throws<ArgumentOutOfRangeException>(nameof(Settings.CurrencyUnitScale), ()
-            => new AccountTransactionActionFilterService(new Settings {
-                MaxDepositAmount = 1,
-                MaxWithdrawalAmount = 1,
-                CurrencyUnitScale = invalidSetting,
-                MinInitialDepositAmount = 1
-            }));
-    }
+        var normalRequest = new WithdrawalRequest(1, 1, 1_000_000);
+        var invalidRequest = new WithdrawalRequest(1, 1, 10_000_000);
 
-    [Fact]
-    public async Task OpenAccountRequestValidator_TestDefaults()
-    {
-        var openAccountRequest = new OpenAccountRequest(customerId: 1, AccountType.Savings, initialDeposit: 20);
-        var openAccountRequestValidator = new OpenAccountRequestValidator();
+        var normalResult = await validator.TestValidateAsync(normalRequest);
+        var invalidResult = await validator.TestValidateAsync(invalidRequest);
 
-        var result = await openAccountRequestValidator.TestValidateAsync(openAccountRequest);
-
-        result.ShouldHaveValidationErrorFor(r => r.InitialDeposit);
+        normalResult.ShouldNotHaveAnyValidationErrors();
+        invalidResult.ShouldHaveValidationErrorFor(nameof(WithdrawalRequest.Amount));
     }
 }

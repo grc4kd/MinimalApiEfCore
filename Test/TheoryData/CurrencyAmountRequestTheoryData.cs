@@ -3,11 +3,11 @@ using Api.Requests;
 
 namespace Test.TheoryData;
 
-public class CurrencyAmountRequestTheoryData : TheoryData<IAccountTransactionRequest>
+public class AccountTransactionRequestTheoryData : TheoryData<IAccountTransactionRequest>
 {
-    public CurrencyAmountRequestTheoryData()
+    public AccountTransactionRequestTheoryData()
     {
-        Add(new DepositRequest(customerId: 1, accountId: 1, amount: 10_000_000_000m));
-        Add(new WithdrawalRequest(customerId: 1, accountId: 1, amount: 10_000_000_000m));
+        Add(new DepositRequest(customerId: 1, accountId: 1, amount: 10_000_000));
+        Add(new WithdrawalRequest(customerId: 1, accountId: 1, amount: 10_000_000));
     }
 }

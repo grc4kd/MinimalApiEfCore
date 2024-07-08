@@ -1,7 +1,6 @@
 namespace Domain.Accounts.Responses;
 
-public interface IAccountTransactionResponse : IAccountResponse
+public interface IAccountTransactionResponse
 {
     public bool Succeeded { get; }
-    public decimal Balance { get; }
 }

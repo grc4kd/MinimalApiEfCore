@@ -1,6 +1,6 @@
 namespace Domain.Accounts.Responses;
 
-public interface IWithdrawalResponse : IAccountResponse
+public interface IWithdrawalResponse
 {
     public bool Succeeded { get; }
 }
