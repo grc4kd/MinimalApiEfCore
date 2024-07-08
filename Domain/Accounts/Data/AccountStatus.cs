@@ -1,12 +1,6 @@
 namespace Domain.Accounts.Data;
 
-public class AccountStatus(AccountStatusType accountStatusType)
+public class AccountStatus
 {
-    public AccountStatusType AccountStatusType { get; init; } = accountStatusType;
-}
-
-public enum AccountStatusType
-{
-    OPEN,
-    CLOSED
+    public AccountStatusType AccountStatusType { get; set; }
 }

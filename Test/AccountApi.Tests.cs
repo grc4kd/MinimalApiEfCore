@@ -77,7 +77,7 @@ public class AccountApiTests : IAsyncDisposable
         var context = scope.ServiceProvider.GetRequiredService<AccountDbContext>();
         var account = new Account
         {
-            AccountStatus = new AccountStatus(AccountStatusType.OPEN),
+            AccountStatus = new AccountStatus { AccountStatusType = AccountStatusType.OPEN },
             Balance = 100,
             Customer = new Customer { Name = string.Empty }
         };
@@ -111,7 +111,7 @@ public class AccountApiTests : IAsyncDisposable
         var context = scope.ServiceProvider.GetRequiredService<AccountDbContext>();
         var account = new Account
         {
-            AccountStatus = new AccountStatus(AccountStatusType.OPEN),
+            AccountStatus = new AccountStatus { AccountStatusType = AccountStatusType.OPEN },
             Balance = 100,
             Customer = new Customer { Name = string.Empty }
         };
@@ -175,7 +175,7 @@ public class AccountApiTests : IAsyncDisposable
         var context = scope.ServiceProvider.GetRequiredService<AccountDbContext>();
         var account = new Account
         {
-            AccountStatus = new AccountStatus(AccountStatusType.OPEN),
+            AccountStatus = new AccountStatus { AccountStatusType = AccountStatusType.OPEN },
             Balance = 100,
             Customer = new Customer { Name = string.Empty }
         };
@@ -311,7 +311,7 @@ public class AccountApiTests : IAsyncDisposable
         using var context = scope.ServiceProvider.GetRequiredService<AccountDbContext>();
         var account = new Account
         {
-            AccountStatus = new AccountStatus(AccountStatusType.CLOSED),
+            AccountStatus = new AccountStatus { AccountStatusType = AccountStatusType.CLOSED },
             Customer = new Customer { Name = string.Empty }
         };
         await context.AddAsync(account);

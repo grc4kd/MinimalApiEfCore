@@ -17,9 +17,9 @@ public class ValidationTests
         CurrencyUnitScale = 2
     };
 
+    [Theory]
     [InlineData(1, 1, -1)]
     [InlineData(1, 1, 0)]
-    [Theory]
     public async Task ValidateRequest_WithdrawalRequest_TestValidate(
         int customerId, int accountId, decimal amount
         )
@@ -47,11 +47,11 @@ public class ValidationTests
         result.ShouldHaveValidationErrorFor(request => request.Amount);
     }
 
+    [Theory]
     [InlineData(0, 1, 0, 1, nameof(Settings.MaxDepositAmount))]
     [InlineData(1, 0, 0, 1, nameof(Settings.MaxWithdrawalAmount))]
     [InlineData(1, 1, -1, 1, nameof(Settings.CurrencyUnitScale))]
     [InlineData(1, 1, 0, 0, nameof(Settings.MinInitialDepositAmount))]
-    [Theory]
     public void Settings_ValidateArguments_CheckExceptions(
         decimal maxDepositAmount, decimal maxWithdrawalAmount, int currencyUnitScale, decimal minInitialDepositAmount,
         string paramName)

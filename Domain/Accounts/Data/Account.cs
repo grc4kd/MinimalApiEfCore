@@ -16,7 +16,7 @@ public class Account
             throw new InvalidOperationException("Account has already been closed.");
         }
 
-        AccountStatus = new AccountStatus(AccountStatusType.CLOSED);
+        AccountStatus = new AccountStatus { AccountStatusType = AccountStatusType.CLOSED };
     }
 
     public void MakeDeposit(decimal amount)

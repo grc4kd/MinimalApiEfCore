@@ -16,21 +16,24 @@ public class AccountControllerTests
     #region Critical Path
 
     [Fact]
-    public async Task CloseAccount_PreconditionsMet_CloseAccountResponse()
+    public async Task OpenAccount_PreconditionsMet_OpenAccountResponse()
     {
         int customerId = 1;
         int accountId = 1;
-        var request = new CloseAccountRequest(customerId, accountId);
+        AccountType accountType = AccountType.Savings;
+        decimal amount = 100;
+        var request = new OpenAccountRequest(customerId, accountType, amount);
         var repositoryMock = new Mock<IAccountRepository>();
-        repositoryMock.Setup(r => r.CloseAsync(request))
-            .ReturnsAsync(new CloseAccountResponse(customerId, accountId, true, AccountStatusType.OPEN));
+        repositoryMock.Setup(r => r.OpenAsync(request))
+            .ReturnsAsync(new OpenAccountResponse(customerId, accountId, true));
         var controller = new AccountController(repositoryMock.Object);
 
-        var (result, response, httpStatusCode) = ActionResultUtilities.ConvertActionResultToObjects<OkObjectResult, CloseAccountResponse>(
-            await controller.Close(request));
+        var (result, response, httpStatusCode) = ActionResultUtilities.ConvertActionResultToObjects<CreatedAtActionResult, OpenAccountResponse>(
+            await controller.Open(request)
+        );
 
-        repositoryMock.Verify(r => r.CloseAsync(request));
-        Assert.Equal(HttpStatusCode.OK, httpStatusCode);
+        repositoryMock.Verify(r => r.OpenAsync(request));
+        Assert.Equal(HttpStatusCode.Created, httpStatusCode);
         Assert.True(response.Succeeded);
         Assert.Equal(customerId, response.CustomerId);
         Assert.Equal(accountId, response.AccountId);
@@ -89,27 +92,24 @@ public class AccountControllerTests
     }
 
     [Fact]
-    public async Task OpenAccount_PreconditionsMet_OpenAccountResponse()
+    public async Task CloseAccount_PreconditionsMet_CloseAccountResponse()
     {
         int customerId = 1;
-        int expectedAccountId = 1;
-        AccountType accountType = AccountType.Savings;
-        decimal amount = 100;
-        var request = new OpenAccountRequest(customerId, accountType, amount);
+        int accountId = 1;
+        var request = new CloseAccountRequest(customerId, accountId);
         var repositoryMock = new Mock<IAccountRepository>();
-        repositoryMock.Setup(r => r.OpenAsync(request))
-            .ReturnsAsync(new OpenAccountResponse(customerId, expectedAccountId, true));
+        repositoryMock.Setup(r => r.CloseAsync(request))
+            .ReturnsAsync(new CloseAccountResponse(customerId, accountId, true, AccountStatusType.OPEN));
         var controller = new AccountController(repositoryMock.Object);
 
-        var (result, response, httpStatusCode) = ActionResultUtilities.ConvertActionResultToObjects<CreatedAtActionResult, OpenAccountResponse>(
-            await controller.Open(request)
-        );
+        var (result, response, httpStatusCode) = ActionResultUtilities.ConvertActionResultToObjects<OkObjectResult, CloseAccountResponse>(
+            await controller.Close(request));
 
-        repositoryMock.Verify(r => r.OpenAsync(request));
-        Assert.Equal(HttpStatusCode.Created, httpStatusCode);
+        repositoryMock.Verify(r => r.CloseAsync(request));
+        Assert.Equal(HttpStatusCode.OK, httpStatusCode);
         Assert.True(response.Succeeded);
         Assert.Equal(customerId, response.CustomerId);
-        Assert.Equal(expectedAccountId, response.AccountId);
+        Assert.Equal(accountId, response.AccountId);
     }
 
     #endregion
@@ -139,7 +139,7 @@ public class AccountControllerTests
     }
 
     [Fact]
-    public async Task OpenAccount_DepositLessThanMinimum_ShouldReturn___Async()
+    public async Task OpenAccount_DepositLessThanMinimum_ShouldReturnOpenAccountValidationResponse()
     {
         int customerId = 1;
         AccountType accountType = AccountType.Checking;
@@ -158,8 +158,33 @@ public class AccountControllerTests
         
         repositoryMock.Verify(r => r.OpenAsync(request));
         Assert.False(response.Succeeded);
+        Assert.Equal(customerId, response.CustomerId);
         Assert.Single(response.ValidationResult.Errors);
         Assert.Contains(response.ValidationResult.Errors, e => e.PropertyName == "Amount");
+    }
+
+    [Fact]
+    public async Task Deposit_NegativeAmount_ShouldReturnAccountTransactionValidationResponse()
+    {
+        int customerId = 1;
+        int accountId = 1;
+        decimal amount = -1;
+        var request = new DepositRequest(customerId, accountId, amount);
+        var repositoryMock = new Mock<IAccountRepository>();
+        repositoryMock.Setup(r => r.DepositAsync(request))
+            .ReturnsAsync(new AccountTransactionValidationResponse(new ValidationResult(
+                [ new ValidationFailure("Amount", "placeholder text") ]   
+            )));
+        var controller = new AccountController(repositoryMock.Object);
+
+        var (result, response, httpStatusCode) = ActionResultUtilities.ConvertActionResultToObjects<BadRequestObjectResult, AccountTransactionValidationResponse>(
+            await controller.Deposit(request)
+        );
+
+        repositoryMock.Verify(r => r.DepositAsync(request));
+        Assert.False(response.Succeeded);
+        Assert.Single(response.ValidationResult.Errors);
+        Assert.Equal("Amount", response.ValidationResult.Errors.Single().PropertyName);
     }
 
     #endregion

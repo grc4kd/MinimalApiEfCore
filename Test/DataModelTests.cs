@@ -10,7 +10,7 @@ public class DataModelTests
     {
         var account = new Account
         {
-            AccountStatus = new AccountStatus(AccountStatusType.OPEN)
+            AccountStatus = new AccountStatus { AccountStatusType = AccountStatusType.OPEN }
         };
 
         account.Close();

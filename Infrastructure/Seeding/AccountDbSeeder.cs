@@ -26,7 +26,7 @@ public class AccountDbSeeder
             new Account
             {
                 AccountType = AccountType.Savings,
-                AccountStatus = new AccountStatus(AccountStatusType.OPEN),
+                AccountStatus = new AccountStatus { AccountStatusType = AccountStatusType.OPEN },
                 Balance = 100,
                 Customer = new Customer
                 {

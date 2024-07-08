@@ -12,7 +12,7 @@ public class Customer
     [PersonalData]
     public required string Name { get; set; }
 
-    public ICollection<Account> Accounts { get; } = [];
+    public ICollection<Account> Accounts { get; set; } = [];
 
     public bool HasSavingsAccount()
     {
@@ -24,7 +24,7 @@ public class Customer
         var account = new Account
         {
             CustomerId = Id,
-            AccountStatus = new AccountStatus(AccountStatusType.OPEN),
+            AccountStatus = new AccountStatus { AccountStatusType = AccountStatusType.OPEN },
             AccountType = accountType,
             Balance = initialDeposit
         };
