@@ -153,8 +153,8 @@ account.MapGet("/{id}", async (AccountDbContext db, int id) =>
     var account = await db.Accounts
         .AsNoTracking()
         .Include(a => a.Customer)
-        .OrderBy(a => a.Id)
         .Where(a => a.Id == id)
+        .OrderBy(a => a.Id)
         .SingleOrDefaultAsync();
 
     if (account != null)

@@ -111,7 +111,7 @@ public class AccountApiActionFilterTests : IAsyncDisposable
         var context = scope.ServiceProvider.GetRequiredService<AccountDbContext>();
         await DataUtilities.ReinitializeDbForTestsAsync(context);
 
-        var account = await context.Accounts.FirstAsync();
+        var account = await context.Accounts.OrderBy(a => a.Id).FirstAsync();
 
         var request = new WithdrawalRequest(customerId: account.CustomerId, accountId: account.Id, amount: 100.01m);
         var response = await _client.PostAsync("api/account/withdrawal", JsonContent.Create(request));
