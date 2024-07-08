@@ -1,15 +1,15 @@
 using Api;
 using Test.Fixtures;
 
-namespace Test;
+namespace Test.AccountApi;
 
 [Collection("CustomWebApplicationFactoryTests")]
-public class AccountApiSettingsTests : IAsyncDisposable
+public class SettingsTests : IAsyncDisposable
 {
     private readonly CustomWebApplicationFactory<Program> _webApplicationFactory;
     private readonly Settings _settings;
 
-    public AccountApiSettingsTests(CustomWebApplicationFactory<Program> webApplicationFactory)
+    public SettingsTests(CustomWebApplicationFactory<Program> webApplicationFactory)
     {
         _webApplicationFactory = webApplicationFactory;
         var config = _webApplicationFactory.Services.GetRequiredService<IConfiguration>();

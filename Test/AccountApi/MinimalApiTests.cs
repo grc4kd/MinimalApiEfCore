@@ -5,15 +5,15 @@ using Microsoft.EntityFrameworkCore;
 using Test.Fixtures;
 using Test.Helpers;
 
-namespace Test;
+namespace Test.AccountApi;
 
 [Collection("CustomWebApplicationFactoryTests")]
-public class AccountApiMinimalApiTests : IAsyncDisposable
+public class MinimalApiTests : IAsyncDisposable
 {
     private readonly HttpClient _client;
     private readonly CustomWebApplicationFactory<Program> _webApplicationFactory;
 
-    public AccountApiMinimalApiTests(CustomWebApplicationFactory<Program> webApplicationFactory)
+    public MinimalApiTests(CustomWebApplicationFactory<Program> webApplicationFactory)
     {
         _webApplicationFactory = webApplicationFactory;
         _client = webApplicationFactory.CreateClient(new WebApplicationFactoryClientOptions

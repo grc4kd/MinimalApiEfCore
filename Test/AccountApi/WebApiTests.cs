@@ -1,21 +1,21 @@
 using System.Net;
+using Domain.Accounts.Data;
 using Infrastructure;
 using Api.Requests;
 using Api.Responses;
+using Test.Fixtures;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Test.Fixtures;
-using Domain.Accounts.Data;
 
-namespace Test;
+namespace Test.AccountApi;
 
 [Collection("CustomWebApplicationFactoryTests")]
-public class AccountApiTests : IAsyncDisposable
+public class WebApiTests : IAsyncDisposable
 {
     private readonly HttpClient _client;
     private CustomWebApplicationFactory<Program> _webApplicationFactory;
 
-    public AccountApiTests(CustomWebApplicationFactory<Program> webApplicationFactory)
+    public WebApiTests(CustomWebApplicationFactory<Program> webApplicationFactory)
     {
         _webApplicationFactory = webApplicationFactory;
 

@@ -1,5 +1,4 @@
 using Domain.Accounts.Data;
-using Moq;
 
 namespace Test.Domain;
 

@@ -1,17 +1,13 @@
 using Api.Requests;
-using Test.TheoryData;
 using Domain.Accounts.Data;
 
-namespace Test;
+namespace Test.Requests;
 
 public class RequestTests
 {
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2211:Non-constant fields should not be visible",
-        Justification = "xUnit uses public static member fields to pass member data into [Theory] test methods by design")]
-    public static AccountTypeTheoryData AccountTypeData = [];
-
     [Theory]
-    [MemberData(nameof(AccountTypeData))]
+    [InlineData(AccountType.Checking)]
+    [InlineData(AccountType.Savings)]
     public void OpenAccount_TestRequestDefinition(AccountType accountType)
     {
         int customerId = 5;

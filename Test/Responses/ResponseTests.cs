@@ -1,7 +1,7 @@
 using Api.Responses;
 using Domain.Accounts.Data;
 
-namespace Test;
+namespace Test.Responses;
 
 public class ResponseTests
 {

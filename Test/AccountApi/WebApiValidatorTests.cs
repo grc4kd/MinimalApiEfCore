@@ -7,15 +7,15 @@ using Test.Helpers;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 
-namespace Test;
+namespace Test.AccountApi;
 
 [Collection("CustomWebApplicationFactoryTests")]
-public class AccountApiValidatorTests : IAsyncDisposable
+public class WebApiValidatorTests : IAsyncDisposable
 {
     private readonly HttpClient _client;
     private readonly CustomWebApplicationFactory<Program> _webApplicationFactory;
 
-    public AccountApiValidatorTests(CustomWebApplicationFactory<Program> webApplicationFactory)
+    public WebApiValidatorTests(CustomWebApplicationFactory<Program> webApplicationFactory)
     {
         _webApplicationFactory = webApplicationFactory;
         _client = webApplicationFactory.CreateClient(new WebApplicationFactoryClientOptions

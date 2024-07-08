@@ -1,13 +1,11 @@
-using Domain.Accounts.Requests;
 using Api;
 using Api.Requests;
 using Api.Validators;
 using FluentValidation.TestHelper;
-using Test.TheoryData;
 
-namespace Test;
+namespace Test.AccountApi;
 
-public class ValidationTests
+public class ValidatorTests
 {
     readonly Settings safeSettings = new()
     {
@@ -32,17 +30,24 @@ public class ValidationTests
         result.ShouldHaveValidationErrorFor(request => request.Amount);
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2211:Non-constant fields should not be visible",
-        Justification = "xUnit uses public static member fields to pass member data into [Theory] test methods by design")]
-    public static AccountTransactionRequestTheoryData CurrencyAmountRequestData = [];
-
-    [Theory]
-    [MemberData(nameof(CurrencyAmountRequestData))]
-    public async Task ValidateRequest_IAccountTransactionRequest_TestValidate(IAccountTransactionRequest request)
+    [Fact]
+    public async Task ValidateRequest_DepositRequestWithExcessAmount_TestValidate()
     {
+        var badRequest = new DepositRequest(customerId: 1, accountId: 1, amount: 10_000_000);
         var validator = new AccountTransactionRequestValidator(safeSettings);
 
-        var result = await validator.TestValidateAsync(request);
+        var result = await validator.TestValidateAsync(badRequest);
+
+        result.ShouldHaveValidationErrorFor(request => request.Amount);
+    }
+
+    [Fact]
+    public async Task ValidateRequest_WithdrawalRequestWithExcessAmount_TestValidate()
+    {
+        var badRequest = new WithdrawalRequest(customerId: 1, accountId: 1, amount: 10_000_000);
+        var validator = new AccountTransactionRequestValidator(safeSettings);
+
+        var result = await validator.TestValidateAsync(badRequest);
 
         result.ShouldHaveValidationErrorFor(request => request.Amount);
     }
